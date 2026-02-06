@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PCU Media - PlayCenter Universal</title>
+    <link rel="icon" type="image/png" href="salta.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="theme-executive.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <img
+              class="brand-logo"
+              src="Playlogo.png"
+              alt="PlayCenter Universal"
+            />
+            <h1>PCU Media</h1>
+          </div>
+        </div>
+
+        <div class="sidebar-content">
+          <div class="upload-section">
+            <button id="uploadBtn" class="upload-btn">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Subir Archivos
+            </button>
+
+            <button id="newFolderBtn" class="new-folder-btn" type="button">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M12 5v14"></path>
+                <path d="M5 12h14"></path>
+              </svg>
+              Nueva carpeta
+            </button>
+            <div id="dropZone" class="drop-zone">
+              <p>Arrastra archivos aquí</p>
+            </div>
+          </div>
+
+          <div class="folder-tree">
+            <h3>Carpetas</h3>
+            <div id="folderTree" class="tree-content"></div>
+          </div>
+        </div>
+      </aside>
+
+      <div
+        id="sidebarOverlay"
+        class="sidebar-overlay"
+        onclick="toggleSidebar(false)"
+      ></div>
+
+      <div id="envBanner" class="env-banner" style="display: none"></div>
+
+      <div
+        id="toastHost"
+        class="toast-host"
+        aria-live="polite"
+        aria-atomic="true"
+      ></div>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Header with Breadcrumbs -->
+        <header class="header">
+          <div class="header-left">
+            <button
+              id="menuBtn"
+              class="icon-btn"
+              type="button"
+              aria-label="Abrir menú"
+              onclick="toggleSidebar(true)"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+
+            <div class="breadcrumbs">
+              <span id="breadcrumbPath">Inicio</span>
+            </div>
+          </div>
+
+          <div class="header-actions">
+            <select id="sortSelect" class="sort-select">
+              <option value="custom" selected>Orden manual</option>
+              <option value="name">Ordenar por nombre</option>
+              <option value="date">Ordenar por fecha</option>
+            </select>
+          </div>
+        </header>
+
+        <!-- Gallery Grid -->
+        <div class="gallery-container">
+          <div
+            id="homeAccordion"
+            class="home-accordion"
+            style="display: none"
+          ></div>
+
+          <div id="galleryGrid" class="gallery-grid">
+            <!-- Files will be loaded here dynamically -->
+          </div>
+
+          <div id="emptyState" class="empty-state">
+            <svg
+              width="80"
+              height="80"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <h3>No hay archivos en esta carpeta</h3>
+            <p>
+              Arrastra archivos o usa el botón de subir para agregar contenido
+            </p>
+          </div>
+        </div>
+      </main>
+
+      <!-- Upload Modal -->
+      <div id="uploadModal" class="upload-modal">
+        <div class="upload-overlay" onclick="closeUploadModal()"></div>
+        <div class="upload-dialog">
+          <h3>Subir Archivos</h3>
+          <p>Selecciona la carpeta destino:</p>
+          <select id="uploadFolderSelect" class="upload-folder-select"></select>
+          <div id="uploadPreviewArea" class="upload-preview-area">
+            <p>Arrastra archivos aquí o haz clic para seleccionar</p>
+          </div>
+          <input
+            type="file"
+            id="uploadFileInput"
+            multiple
+            accept="image/*,video/*"
+            style="display: none"
+          />
+          <div class="upload-actions">
+            <button class="upload-cancel-btn" onclick="closeUploadModal()">
+              Cancelar
+            </button>
+            <button id="uploadConfirmBtn" class="upload-confirm-btn" disabled>
+              Subir Archivos
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create Folder Modal -->
+      <div id="folderModal" class="folder-modal">
+        <div class="folder-overlay" onclick="closeFolderModal()"></div>
+        <div class="folder-dialog">
+          <h3>Nueva carpeta</h3>
+          <p>¿Dónde quieres crearla?</p>
+          <select id="folderParentSelect" class="folder-parent-select"></select>
+          <p>Nombre de la carpeta:</p>
+          <input
+            id="folderNameInput"
+            class="folder-name-input"
+            type="text"
+            placeholder="Ej: Pagos días 30"
+            autocomplete="off"
+          />
+          <div class="folder-actions">
+            <button class="folder-cancel-btn" onclick="closeFolderModal()">
+              Cancelar
+            </button>
+            <button
+              id="folderCreateBtn"
+              class="folder-create-btn"
+              type="button"
+            >
+              Crear
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Move File Modal -->
+      <div id="moveModal" class="folder-modal">
+        <div class="folder-overlay" onclick="closeMoveModal()"></div>
+        <div class="folder-dialog">
+          <h3>Mover archivo</h3>
+          <p>¿A qué carpeta lo quieres mover?</p>
+          <select id="moveFolderSelect" class="folder-parent-select"></select>
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-top: 10px;
+            "
+          >
+            <input id="moveOverwrite" type="checkbox" />
+            <span>Reemplazar si existe</span>
+          </label>
+          <div class="folder-actions">
+            <button class="folder-cancel-btn" onclick="closeMoveModal()">
+              Cancelar
+            </button>
+            <button id="moveConfirmBtn" class="folder-create-btn" type="button">
+              Mover
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rename File Modal -->
+      <div id="renameFileModal" class="folder-modal">
+        <div class="folder-overlay" onclick="closeRenameFileModal()"></div>
+        <div class="folder-dialog">
+          <h3>Renombrar archivo</h3>
+          <p>Nuevo nombre:</p>
+          <div class="selected-file-item" style="margin-top: 8px">
+            <input
+              type="text"
+              id="renameFileInput"
+              class="selected-file-title"
+              aria-label="Nuevo nombre"
+              autocomplete="off"
+            />
+            <span id="renameFileExt" class="selected-file-ext"></span>
+          </div>
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-top: 10px;
+            "
+          >
+            <input id="renameOverwrite" type="checkbox" />
+            <span>Reemplazar si existe</span>
+          </label>
+          <div class="folder-actions">
+            <button class="folder-cancel-btn" onclick="closeRenameFileModal()">
+              Cancelar
+            </button>
+            <button
+              id="renameFileConfirmBtn"
+              class="folder-create-btn"
+              type="button"
+            >
+              Renombrar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delete File Modal -->
+      <div id="deleteFileModal" class="folder-modal">
+        <div class="folder-overlay" onclick="closeDeleteFileModal()"></div>
+        <div class="folder-dialog">
+          <h3>Eliminar archivo</h3>
+          <p>
+            ¿Seguro que quieres eliminar
+            <strong id="deleteFileName"></strong>?
+          </p>
+          <div class="folder-actions">
+            <button class="folder-cancel-btn" onclick="closeDeleteFileModal()">
+              Cancelar
+            </button>
+            <button
+              id="deleteFileConfirmBtn"
+              class="folder-create-btn"
+              type="button"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rename Folder Modal -->
+      <div id="renameFolderModal" class="folder-modal">
+        <div class="folder-overlay" onclick="closeRenameFolderModal()"></div>
+        <div class="folder-dialog">
+          <h3>Renombrar carpeta</h3>
+          <p>Nuevo nombre:</p>
+          <input
+            id="renameFolderInput"
+            class="folder-name-input"
+            type="text"
+            placeholder="Nombre de carpeta"
+            autocomplete="off"
+          />
+          <div class="folder-actions">
+            <button
+              class="folder-cancel-btn"
+              onclick="closeRenameFolderModal()"
+            >
+              Cancelar
+            </button>
+            <button
+              id="renameFolderConfirmBtn"
+              class="folder-create-btn"
+              type="button"
+            >
+              Renombrar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delete Folder Modal -->
+      <div id="deleteFolderModal" class="folder-modal">
+        <div class="folder-overlay" onclick="closeDeleteFolderModal()"></div>
+        <div class="folder-dialog">
+          <h3>Eliminar carpeta</h3>
+          <p>
+            ¿Seguro que quieres eliminar
+            <strong id="deleteFolderName"></strong> y su contenido?
+          </p>
+          <div class="folder-actions">
+            <button
+              class="folder-cancel-btn"
+              onclick="closeDeleteFolderModal()"
+            >
+              Cancelar
+            </button>
+            <button
+              id="deleteFolderConfirmBtn"
+              class="folder-create-btn"
+              type="button"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Modal -->
+      <div id="previewModal" class="preview-modal">
+        <div class="preview-overlay" onclick="closePreview()"></div>
+        <div class="preview-content">
+          <button class="preview-close" onclick="closePreview()">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+
+          <div class="preview-media">
+            <div id="previewContainer"></div>
+          </div>
+
+          <div class="preview-info">
+            <h3 id="previewFileName"></h3>
+            <div class="file-details">
+              <p><strong>Ruta:</strong> <span id="previewFilePath"></span></p>
+              <p><strong>Fecha:</strong> <span id="previewFileDate"></span></p>
+              <p><strong>Tamaño:</strong> <span id="previewFileSize"></span></p>
+            </div>
+
+            <div class="preview-actions">
+              <button id="shareBtn" class="share-btn">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="18" cy="5" r="3"></circle>
+                  <circle cx="6" cy="12" r="3"></circle>
+                  <circle cx="18" cy="19" r="3"></circle>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+                Compartir
+              </button>
+
+              <button id="downloadBtn" class="download-btn">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Descargar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="firebase.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

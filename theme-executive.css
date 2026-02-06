@@ -1,0 +1,251 @@
+/* Executive Theme Overrides */
+:root {
+  --bg: #0c111a;
+  --panel: #0d1524;
+  --panel-2: #0b1220;
+  --surface: #0b1220;
+  --surface-2: rgba(255, 255, 255, 0.06);
+  --text: rgba(255, 255, 255, 0.94);
+  --muted: rgba(255, 255, 255, 0.62);
+  --muted-2: rgba(255, 255, 255, 0.4);
+  --border: rgba(255, 255, 255, 0.12);
+  --border-2: rgba(255, 255, 255, 0.18);
+  --accent: #4f46e5; /* indigo-600 */
+  --accent-2: #60a5fa; /* blue-400 */
+  --danger: #ef4444; /* red-500 */
+}
+
+/* Background override */
+body {
+  background: linear-gradient(180deg, #0c111a 0%, #0a0f16 100%);
+}
+
+/* Breadcrumbs as clear navigation */
+.breadcrumbs a {
+  color: var(--text);
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+
+.crumb-sep {
+  color: var(--muted);
+  opacity: 0.7;
+  margin: 0 4px;
+}
+
+/* Cards and grid aesthetics */
+.gallery-grid,
+.home-files-grid,
+.home-section__grid {
+  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+}
+
+@media (min-width: 1600px) {
+  .gallery-grid,
+  .home-files-grid,
+  .home-section__grid {
+    grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .gallery-grid,
+  .home-files-grid,
+  .home-section__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gallery-item {
+  aspect-ratio: 16/9; /* más cinematográfico */
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+}
+
+.gallery-item:hover {
+  border-color: rgba(99, 102, 241, 0.35); /* indigo */
+}
+
+.gallery-item img,
+.gallery-item video {
+  object-fit: contain;
+  background: #000;
+}
+
+/* Bigger filename overlay for larger cards */
+.gallery-item .file-name {
+  font-size: 15px;
+  padding: 16px;
+}
+
+/* Item actions (pencil icon) */
+.item-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: var(--transition);
+}
+
+.gallery-item:hover .item-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.item-actions__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(13, 19, 32, 0.75);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.item-actions__btn:hover {
+  border-color: rgba(99, 102, 241, 0.45);
+  filter: brightness(1.05);
+}
+
+/* Context menu for items/folders */
+.item-menu {
+  min-width: 180px;
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+}
+
+.item-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.item-menu__item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.item-menu__item--danger {
+  color: var(--danger);
+}
+
+/* Drag states */
+.gallery-item.dragging {
+  opacity: 0.85;
+  transform: scale(0.98);
+  border-color: rgba(99, 102, 241, 0.45);
+}
+
+.tree-item.drop-target {
+  border: 1px dashed rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+/* Section headers (Videos / Imágenes) */
+.home-section__header {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+}
+
+.home-section__title {
+  font-weight: 700;
+}
+
+.home-section__chev {
+  border-color: var(--border);
+}
+
+/* Buttons: executive gradients */
+.upload-btn,
+.folder-create-btn,
+.share-btn,
+.upload-confirm-btn {
+  background: linear-gradient(
+    135deg,
+    rgba(79, 70, 229, 0.95),
+    rgba(37, 99, 235, 0.95)
+  ) !important;
+  color: #fff !important;
+}
+
+/* Select and inputs */
+.sort-select,
+.folder-parent-select,
+.folder-name-input,
+.upload-folder-select {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sort-select:hover,
+.folder-parent-select:hover,
+.folder-name-input:hover,
+.upload-folder-select:hover {
+  border-color: rgba(99, 102, 241, 0.45);
+}
+
+/* Sidebar */
+.sidebar {
+  background: linear-gradient(
+    180deg,
+    rgba(13, 21, 36, 0.95),
+    rgba(10, 16, 26, 0.95)
+  );
+}
+
+/* Header */
+.header {
+  background: rgba(13, 19, 32, 0.7);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Folder rows */
+.home-folder__row {
+  background: rgba(255, 255, 255, 0.02);
+}
+.home-folder__row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+/* Video indicator */
+.gallery-item .video-indicator {
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+
+/* Move the video indicator to the left to avoid overlapping the pencil */
+.gallery-item .video-indicator {
+  right: auto;
+  left: 8px;
+}
+
+/* Active folder in tree with executive accent */
+.tree-item.active {
+  background: rgba(99, 102, 241, 0.16);
+  color: var(--text);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
