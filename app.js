@@ -9,6 +9,7 @@ class PCUMedia {
     this.currentPreviewFile = null;
     this.pendingUploadFiles = [];
     this.pendingUploadNames = [];
+    this.pendingUploadObjectUrls = [];
     this.homeCollapsed = new Set();
     this.homeFolderFiles = new Map();
     this.folderSectionsCollapsed = new Set();
@@ -1317,9 +1318,9 @@ class PCUMedia {
 
     // Set media content
     if (file.type === "video") {
-      container.innerHTML = `<video src="${file.url}" controls playsinline preload="metadata"></video>`;
+      container.innerHTML = `<video src="${file.url}" controls playsinline preload="metadata" style="max-width:100%;max-height:100%;object-fit:contain"></video>`;
     } else {
-      container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}">`;
+      container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="max-width:100%;max-height:100%;object-fit:contain">`;
     }
 
     // Store current file for sharing/downloading
@@ -1729,6 +1730,16 @@ class PCUMedia {
   }
 
   setPendingUploadFiles(fileList) {
+    try {
+      if (Array.isArray(this.pendingUploadObjectUrls)) {
+        for (const u of this.pendingUploadObjectUrls) {
+          try {
+            if (u) URL.revokeObjectURL(u);
+          } catch {}
+        }
+      }
+    } catch {}
+
     const files = Array.from(fileList || []).filter((f) => {
       return (
         f.type && (f.type.startsWith("image/") || f.type.startsWith("video/"))
@@ -1737,6 +1748,7 @@ class PCUMedia {
 
     this.pendingUploadFiles = files;
     this.pendingUploadNames = files.map((f) => this.splitFileName(f.name).base);
+    this.pendingUploadObjectUrls = files.map((f) => URL.createObjectURL(f));
 
     const area = document.getElementById("uploadPreviewArea");
     const confirmBtn = document.getElementById("uploadConfirmBtn");
@@ -1760,18 +1772,40 @@ class PCUMedia {
       const item = document.createElement("div");
       item.className = "selected-file-item";
       const parts = this.splitFileName(f.name);
+      const url = this.pendingUploadObjectUrls[i];
+      const isImg = (f.type || "").startsWith("image/");
+      const mediaHtml = isImg
+        ? `<img class=\"selected-file-thumb\" src=\"${url}\" alt=\"${this.escapeHtml(parts.base)}\" />`
+        : `<video class=\"selected-file-thumb\" src=\"${url}\" muted playsinline></video>`;
       item.innerHTML = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                <input type="text" class="selected-file-title" value="${this.escapeHtml(parts.base)}" aria-label="Título" />
-                <span class="selected-file-ext">${this.escapeHtml(parts.ext)}</span>
-            `;
+        <div class="selected-file-thumbwrap">
+          ${mediaHtml}
+          <button type="button" class="selected-file-remove" aria-label="Quitar">×</button>
+        </div>
+        <div class="selected-file-meta">
+          <input type="text" class="selected-file-title" value="${this.escapeHtml(parts.base)}" aria-label="Título" />
+          <span class="selected-file-ext">${this.escapeHtml(parts.ext)}</span>
+        </div>
+      `;
       const input = item.querySelector(".selected-file-title");
       if (input) {
         input.addEventListener("input", (e) => {
           this.pendingUploadNames[i] = e.target.value;
+        });
+        input.addEventListener("click", (e) => e.stopPropagation());
+      }
+      const rm = item.querySelector(".selected-file-remove");
+      if (rm) {
+        rm.addEventListener("click", (e) => {
+          e.stopPropagation();
+          try {
+            const urlToRevoke = this.pendingUploadObjectUrls[i];
+            if (urlToRevoke) URL.revokeObjectURL(urlToRevoke);
+          } catch {}
+          const nextFiles = this.pendingUploadFiles
+            .slice(0, i)
+            .concat(this.pendingUploadFiles.slice(i + 1));
+          this.setPendingUploadFiles(nextFiles);
         });
       }
       list.appendChild(item);
