@@ -10,6 +10,7 @@ class PCUMedia {
     this.pendingUploadFiles = [];
     this.pendingUploadNames = [];
     this.pendingUploadObjectUrls = [];
+    this.activeTab = "home";
     this.homeCollapsed = new Set();
     this.homeFolderFiles = new Map();
     this.folderSectionsCollapsed = new Set();
@@ -21,6 +22,40 @@ class PCUMedia {
     this.folderToRename = null;
     this.folderToDelete = null;
     this.init();
+  }
+
+  setActiveTab(tab) {
+    const newTab = tab === "folders" ? "folders" : "home";
+    this.activeTab = newTab;
+    // Toggle nav button state
+    const tabHome = document.getElementById("tabHome");
+    const tabFolders = document.getElementById("tabFolders");
+    if (tabHome) tabHome.classList.toggle("is-active", newTab === "home");
+    if (tabFolders)
+      tabFolders.classList.toggle("is-active", newTab === "folders");
+
+    // Toggle sidebar visibility
+    const sidebar = document.querySelector(".sidebar");
+    const overlay = document.getElementById("sidebarOverlay");
+    if (sidebar)
+      sidebar.style.display = newTab === "folders" ? "block" : "none";
+    if (overlay) overlay.classList.remove("active");
+
+    // In Inicio, navegar a raíz para ver lista de carpetas
+    if (newTab === "home") {
+      if (this.currentPath) {
+        this.navigateToFolder("");
+      } else {
+        this.renderGallery();
+      }
+    } else {
+      // En Carpetas, mantener la ruta actual; si está vacía, mostrar la misma lista con acciones.
+      this.renderGallery();
+    }
+  }
+
+  isHomeView() {
+    return this.activeTab === "home";
   }
 
   openRenameFileModal(file) {
@@ -319,6 +354,8 @@ class PCUMedia {
 
     await this.refreshFolders();
     await this.loadFiles();
+    // Establecer vista inicial y ocultar sidebar en Inicio
+    this.setActiveTab("home");
   }
 
   showToast({ title, message, variant }) {
@@ -388,6 +425,8 @@ class PCUMedia {
     const menuBtn = document.getElementById("menuBtn");
     const breadcrumbPath = document.getElementById("breadcrumbPath");
     const homeBtn = document.getElementById("homeBtn");
+    const tabHome = document.getElementById("tabHome");
+    const tabFolders = document.getElementById("tabFolders");
 
     const newFolderBtn = document.getElementById("newFolderBtn");
     const folderCreateBtn = document.getElementById("folderCreateBtn");
@@ -410,7 +449,8 @@ class PCUMedia {
     const uploadFileInput = document.getElementById("uploadFileInput");
     const uploadConfirmBtn = document.getElementById("uploadConfirmBtn");
 
-    uploadBtn.addEventListener("click", () => this.openUploadModal());
+    if (uploadBtn)
+      uploadBtn.addEventListener("click", () => this.openUploadModal());
 
     if (breadcrumbPath) {
       breadcrumbPath.addEventListener("click", (e) => {
@@ -464,25 +504,36 @@ class PCUMedia {
       homeBtn.addEventListener("click", () => this.navigateToFolder(""));
     }
 
-    dropZone.addEventListener("click", () => this.openUploadModal());
-    dropZone.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      dropZone.classList.add("drag-over");
-    });
-    dropZone.addEventListener("dragleave", () =>
-      dropZone.classList.remove("drag-over"),
-    );
-    dropZone.addEventListener("drop", (e) => {
-      e.preventDefault();
-      dropZone.classList.remove("drag-over");
-      this.openUploadModal();
-      this.setPendingUploadFiles(e.dataTransfer.files);
-    });
+    if (tabHome) {
+      tabHome.addEventListener("click", () => this.setActiveTab("home"));
+    }
+    if (tabFolders) {
+      tabFolders.addEventListener("click", () => this.setActiveTab("folders"));
+    }
 
-    sortSelect.addEventListener("change", (e) => {
-      this.sortBy = e.target.value;
-      this.renderGallery();
-    });
+    if (dropZone) {
+      dropZone.addEventListener("click", () => this.openUploadModal());
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("drag-over");
+      });
+      dropZone.addEventListener("dragleave", () =>
+        dropZone.classList.remove("drag-over"),
+      );
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("drag-over");
+        this.openUploadModal();
+        this.setPendingUploadFiles(e.dataTransfer.files);
+      });
+    }
+
+    if (sortSelect) {
+      sortSelect.addEventListener("change", (e) => {
+        this.sortBy = e.target.value;
+        this.renderGallery();
+      });
+    }
 
     document
       .getElementById("shareBtn")
@@ -746,6 +797,7 @@ class PCUMedia {
 
   updateBreadcrumbs() {
     const breadcrumbElement = document.getElementById("breadcrumbPath");
+    if (!breadcrumbElement) return;
     if (!this.currentPath) {
       breadcrumbElement.innerHTML = `<a href="#" data-path="" style="text-decoration: underline;">Inicio</a>`;
       return;
@@ -923,19 +975,22 @@ class PCUMedia {
     // Datos para acciones y orden
     div.dataset.filename = file.name;
     div.dataset.filepath = file.path || "";
-    div.setAttribute("draggable", "true");
-    div.addEventListener("dragstart", (e) => {
-      this.draggingEl = div;
-      try {
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", file.path || "");
-      } catch {}
-      div.classList.add("dragging");
-    });
-    div.addEventListener("dragend", () => {
-      div.classList.remove("dragging");
-      this.draggingEl = null;
-    });
+    const allowDnD = !this.isHomeView();
+    div.setAttribute("draggable", allowDnD ? "true" : "false");
+    if (allowDnD) {
+      div.addEventListener("dragstart", (e) => {
+        this.draggingEl = div;
+        try {
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", file.path || "");
+        } catch {}
+        div.classList.add("dragging");
+      });
+      div.addEventListener("dragend", () => {
+        div.classList.remove("dragging");
+        this.draggingEl = null;
+      });
+    }
 
     const mediaElement =
       file.type === "video"
@@ -957,7 +1012,9 @@ class PCUMedia {
         ? ""
         : `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
 
-    const actionsHtml = `
+    const actionsHtml = this.isHomeView()
+      ? ""
+      : `
       <div class="item-actions">
         <button class="item-actions__btn" type="button" aria-label="Editar o gestionar">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -981,12 +1038,14 @@ class PCUMedia {
     });
 
     // Acciones por ícono
-    const btn = div.querySelector(".item-actions__btn");
-    if (btn) {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.openItemMenu(file, btn);
-      });
+    if (!this.isHomeView()) {
+      const btn = div.querySelector(".item-actions__btn");
+      if (btn) {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.openItemMenu(file, btn);
+        });
+      }
     }
 
     return div;
@@ -1659,6 +1718,13 @@ class PCUMedia {
     const filesEl = wrap.querySelector(".home-folder__files");
 
     row.addEventListener("click", async () => {
+      if (this.isHomeView()) {
+        // En Inicio: entrar a la carpeta
+        await this.navigateToFolder(node.path);
+        return;
+      }
+
+      // En Carpetas: comportamiento de acordeón
       const collapsed = this.homeCollapsed.has(node.path);
       if (collapsed) this.homeCollapsed.delete(node.path);
       else this.homeCollapsed.add(node.path);
@@ -1697,7 +1763,8 @@ class PCUMedia {
       filesEl.innerHTML = "";
       const grid = document.createElement("div");
       grid.className = "home-files-grid";
-      for (const f of files) {
+      const list = this.isHomeView() ? files.slice(0, 6) : files;
+      for (const f of list) {
         const item = this.createGalleryItem(f);
         item.classList.add("home-item");
         grid.appendChild(item);
@@ -1858,6 +1925,11 @@ class PCUMedia {
       this.closeUploadModal();
 
       await this.refreshFolders();
+      // Limpiar caché de Inicio para carpeta destino y refrescar si aplica
+      this.homeFolderFiles.delete(dest || "");
+      if (this.isHomeView()) {
+        this.renderHomeAccordion();
+      }
       if ((dest || "") === (this.currentPath || "")) {
         await this.loadFiles();
       }

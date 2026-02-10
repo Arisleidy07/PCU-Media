@@ -10,7 +10,7 @@
   </head>
   <body>
     <div id="app">
-      <!-- Sidebar -->
+      <!-- Sidebar (solo acciones en vista "Carpetas") -->
       <aside class="sidebar">
         <div class="sidebar-header">
           <div class="logo">
@@ -59,11 +59,6 @@
               <p>Arrastra archivos aquí</p>
             </div>
           </div>
-
-          <div class="folder-tree">
-            <h3>Carpetas</h3>
-            <div id="folderTree" class="tree-content"></div>
-          </div>
         </div>
       </aside>
 
@@ -84,41 +79,19 @@
 
       <!-- Main Content -->
       <main class="main-content">
-        <!-- Header with Breadcrumbs -->
+        <!-- Header superior -->
         <header class="header">
-          <div class="header-left">
-            <button
-              id="menuBtn"
-              class="icon-btn"
-              type="button"
-              aria-label="Abrir menú"
-              onclick="toggleSidebar(true)"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-              </svg>
-            </button>
-
-            <div class="breadcrumbs">
-              <span id="breadcrumbPath">Inicio</span>
-            </div>
+          <div class="header-brand">
+            <img class="brand-logo" src="Playlogo.png" alt="PCU Media" />
+            <h1>PCU Media</h1>
           </div>
-
-          <div class="header-actions">
-            <select id="sortSelect" class="sort-select">
-              <option value="custom" selected>Orden manual</option>
-              <option value="name">Ordenar por nombre</option>
-              <option value="date">Ordenar por fecha</option>
-            </select>
+          <div class="header-nav">
+            <button id="tabHome" class="tab-btn is-active" type="button">
+              Inicio
+            </button>
+            <button id="tabFolders" class="tab-btn" type="button">
+              Carpetas
+            </button>
           </div>
         </header>
 

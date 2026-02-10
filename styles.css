@@ -253,7 +253,7 @@ body {
 }
 
 .header {
-  padding: 18px 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -318,6 +318,55 @@ body {
   border-color: rgba(45, 212, 191, 0.55);
 }
 
+/* Header brand + tabs */
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-brand h1 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.header-brand .brand-logo {
+  width: 28px;
+  height: 28px;
+}
+
+.header-nav {
+  display: inline-flex;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.tab-btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.tab-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tab-btn.is-active {
+  color: var(--text);
+  background: rgba(45, 212, 191, 0.12);
+  border: 1px solid rgba(45, 212, 191, 0.36);
+}
+
 /* Gallery */
 .gallery-container {
   flex: 1;
@@ -328,7 +377,7 @@ body {
 
 .home-accordion {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 /* Inicio: lista de carpetas (icono + nombre + flecha) */
@@ -346,16 +395,22 @@ body {
   background: rgba(255, 255, 255, 0.02);
   color: var(--text);
   cursor: pointer;
-  padding: 12px 14px;
+  padding: 16px 14px;
   display: grid;
   grid-template-columns: 18px 1fr auto 22px;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   transition: var(--transition);
 }
 
 .home-folder__row:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* Home folder card subtle hover glow */
+.home-folder:hover {
+  box-shadow: var(--shadow-md);
+  border-color: rgba(45, 212, 191, 0.28);
 }
 
 .home-folder__icon {
