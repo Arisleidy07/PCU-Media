@@ -10,63 +10,7 @@
   </head>
   <body>
     <div id="app">
-      <!-- Sidebar (solo acciones en vista "Carpetas") -->
-      <aside class="sidebar">
-        <div class="sidebar-header">
-          <div class="logo">
-            <img
-              class="brand-logo"
-              src="Playlogo.png"
-              alt="PlayCenter Universal"
-            />
-            <h1>PCU Media</h1>
-          </div>
-        </div>
-
-        <div class="sidebar-content">
-          <div class="upload-section">
-            <button id="uploadBtn" class="upload-btn">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              Subir Archivos
-            </button>
-
-            <button id="newFolderBtn" class="new-folder-btn" type="button">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path d="M12 5v14"></path>
-                <path d="M5 12h14"></path>
-              </svg>
-              Nueva carpeta
-            </button>
-            <div id="dropZone" class="drop-zone">
-              <p>Arrastra archivos aquí</p>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <div
-        id="sidebarOverlay"
-        class="sidebar-overlay"
-        onclick="toggleSidebar(false)"
-      ></div>
+      <!-- Sidebar eliminado por requerimiento -->
 
       <div id="envBanner" class="env-banner" style="display: none"></div>
 
@@ -81,10 +25,6 @@
       <main class="main-content">
         <!-- Header superior -->
         <header class="header">
-          <div class="header-brand">
-            <img class="brand-logo" src="Playlogo.png" alt="PCU Media" />
-            <h1>PCU Media</h1>
-          </div>
           <div class="header-nav">
             <button id="tabHome" class="tab-btn is-active" type="button">
               Inicio
@@ -97,6 +37,16 @@
 
         <!-- Gallery Grid -->
         <div class="gallery-container">
+          <!-- Barra compacta al entrar a una carpeta -->
+          <div id="folderToolbar" class="folder-toolbar" style="display: none">
+            <button id="backToHomeBtn" class="back-btn" type="button">
+              ← Volver
+            </button>
+            <div class="folder-title">
+              <span id="currentFolderName"></span>
+            </div>
+          </div>
+
           <div
             id="homeAccordion"
             class="home-accordion"
@@ -125,6 +75,49 @@
               Arrastra archivos o usa el botón de subir para agregar contenido
             </p>
           </div>
+        </div>
+
+        <!-- Botonera flotante de acciones (solo en vista "Carpetas") -->
+        <div id="fabDock" class="fab-dock" style="display: none">
+          <button
+            id="newFolderBtn"
+            class="fab-btn"
+            title="Nueva carpeta"
+            type="button"
+            aria-label="Nueva carpeta"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 5v14"></path>
+              <path d="M5 12h14"></path>
+            </svg>
+          </button>
+          <button
+            id="uploadBtn"
+            class="fab-btn"
+            title="Subir archivos"
+            type="button"
+            aria-label="Subir archivos"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </button>
         </div>
       </main>
 

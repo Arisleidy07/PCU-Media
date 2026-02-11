@@ -34,12 +34,12 @@ class PCUMedia {
     if (tabFolders)
       tabFolders.classList.toggle("is-active", newTab === "folders");
 
-    // Toggle sidebar visibility
-    const sidebar = document.querySelector(".sidebar");
-    const overlay = document.getElementById("sidebarOverlay");
-    if (sidebar)
-      sidebar.style.display = newTab === "folders" ? "block" : "none";
-    if (overlay) overlay.classList.remove("active");
+    // Mostrar/Ocultar botonera flotante solo en "Carpetas"
+    const fabDock = document.getElementById("fabDock");
+    if (fabDock) fabDock.style.display = newTab === "folders" ? "flex" : "none";
+
+    // Actualizar barra de carpeta
+    this.updateFolderToolbar();
 
     // In Inicio, navegar a raíz para ver lista de carpetas
     if (newTab === "home") {
@@ -56,6 +56,21 @@ class PCUMedia {
 
   isHomeView() {
     return this.activeTab === "home";
+  }
+
+  updateFolderToolbar() {
+    const toolbar = document.getElementById("folderToolbar");
+    const nameEl = document.getElementById("currentFolderName");
+    const backBtn = document.getElementById("backToHomeBtn");
+    if (!toolbar || !nameEl || !backBtn) return;
+    const inFolder = !!(this.currentPath && this.currentPath.length);
+    toolbar.style.display = inFolder ? "flex" : "none";
+    if (inFolder) {
+      const parts = this.currentPath.split("/").filter(Boolean);
+      nameEl.textContent = parts[parts.length - 1] || this.currentPath;
+    } else {
+      nameEl.textContent = "";
+    }
   }
 
   openRenameFileModal(file) {
@@ -427,6 +442,7 @@ class PCUMedia {
     const homeBtn = document.getElementById("homeBtn");
     const tabHome = document.getElementById("tabHome");
     const tabFolders = document.getElementById("tabFolders");
+    const backToHomeBtn = document.getElementById("backToHomeBtn");
 
     const newFolderBtn = document.getElementById("newFolderBtn");
     const folderCreateBtn = document.getElementById("folderCreateBtn");
@@ -509,6 +525,13 @@ class PCUMedia {
     }
     if (tabFolders) {
       tabFolders.addEventListener("click", () => this.setActiveTab("folders"));
+    }
+
+    if (backToHomeBtn) {
+      backToHomeBtn.addEventListener("click", async () => {
+        this.setActiveTab("folders");
+        await this.navigateToFolder("");
+      });
     }
 
     if (dropZone) {
@@ -789,10 +812,7 @@ class PCUMedia {
     this.updateBreadcrumbs();
     await this.loadFiles();
     this.renderFolderTree();
-
-    if (window.matchMedia("(max-width: 980px)").matches) {
-      this.toggleSidebar(false);
-    }
+    this.updateFolderToolbar();
   }
 
   updateBreadcrumbs() {
@@ -881,6 +901,7 @@ class PCUMedia {
     const galleryGrid = document.getElementById("galleryGrid");
     const emptyState = document.getElementById("emptyState");
     const homeAccordion = document.getElementById("homeAccordion");
+    this.updateFolderToolbar();
 
     if (homeAccordion) {
       if (!this.currentPath) {
@@ -1097,6 +1118,7 @@ class PCUMedia {
     const menu = document.createElement("div");
     menu.className = "item-menu";
     menu.innerHTML = `
+      <button type="button" class="item-menu__item" data-action="open-folder">Abrir carpeta</button>
       <button type="button" class="item-menu__item" data-action="rename-folder">Renombrar carpeta</button>
       <button type="button" class="item-menu__item item-menu__item--danger" data-action="delete-folder">Eliminar carpeta</button>
     `;
@@ -1113,7 +1135,9 @@ class PCUMedia {
       const t = e.target;
       if (!t || !t.getAttribute) return;
       const action = t.getAttribute("data-action");
-      if (action === "rename-folder") this.openRenameFolderModal(node);
+      if (action === "open-folder")
+        await this.navigateToFolder(node.path || "");
+      else if (action === "rename-folder") this.openRenameFolderModal(node);
       else if (action === "delete-folder") this.openDeleteFolderModal(node);
       this.closeActionMenu();
     });
@@ -1702,6 +1726,17 @@ class PCUMedia {
         </span>
         <span class="home-folder__name">${this.escapeHtml(node.name)}</span>
         <span class="home-folder__meta"></span>
+        ${
+          this.isHomeView()
+            ? ""
+            : `<button type="button" class="home-folder__menuBtn" aria-label="Acciones">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="5" r="1"></circle>
+              <circle cx="12" cy="12" r="1"></circle>
+              <circle cx="12" cy="19" r="1"></circle>
+            </svg>
+        </button>`
+        }
         <span class="home-folder__chev" aria-hidden="true">${isCollapsed ? "▸" : "▾"}</span>
       </button>
       <div class="home-folder__body" style="display: ${isCollapsed ? "none" : "block"}">
@@ -1716,6 +1751,7 @@ class PCUMedia {
     const meta = wrap.querySelector(".home-folder__meta");
     const childrenEl = wrap.querySelector(".home-folder__children");
     const filesEl = wrap.querySelector(".home-folder__files");
+    const menuBtn = wrap.querySelector(".home-folder__menuBtn");
 
     row.addEventListener("click", async () => {
       if (this.isHomeView()) {
@@ -1738,6 +1774,13 @@ class PCUMedia {
         await this.renderHomeFolderBody(node, filesEl, childrenEl, meta, depth);
       }
     });
+
+    if (menuBtn) {
+      menuBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.openFolderMenu(node, menuBtn);
+      });
+    }
 
     // Siempre cargar metadatos (conteos) y contenido, aunque el cuerpo esté oculto si está colapsado
     this.renderHomeFolderBody(node, filesEl, childrenEl, meta, depth);
