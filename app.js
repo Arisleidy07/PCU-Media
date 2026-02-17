@@ -572,7 +572,7 @@ class PCUMedia {
   async checkEnvironment() {
     if (window.location.protocol === "file:") {
       this.setEnvBanner(
-        "Estás abriendo la app como archivo (file://). Para subir/leer archivos debes abrirla desde el servidor: http://localhost:3000 (npm start).",
+        `Estás abriendo la app como archivo (file://). Para que funcione debes abrirla desde un servidor (local o en Vercel). Ejemplo local: npm install && npm start, y abre http://localhost:3000.`,
       );
       return;
     }
@@ -585,8 +585,14 @@ class PCUMedia {
       }
       this.setEnvBanner("");
     } catch (e) {
+      const origin = window.location.origin;
+      const host = window.location.hostname;
+      const isVercel = host.endsWith("vercel.app");
+      const isGithub = host.endsWith("github.io");
       this.setEnvBanner(
-        "No se puede conectar al servidor. Asegúrate de ejecutar: npm install y npm start. Luego abre http://localhost:3000",
+        isVercel || isGithub
+          ? `No se puede conectar al servidor en ${origin}. Revisa que el despliegue esté correcto y que /api/health responda.`
+          : "No se puede conectar al servidor. Si estás local: npm install && npm start, luego abre http://localhost:3000",
       );
     }
   }
