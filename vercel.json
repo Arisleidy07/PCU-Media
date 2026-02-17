@@ -1,23 +1,8 @@
 {
-  "version": 2,
-  "name": "pcu-media",
-  "builds": [
+  "rewrites": [
     {
-      "src": "server-firebase.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/server-firebase.js"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/api/:path*",
+      "destination": "/server-firebase.js"
     }
   ]
 }
