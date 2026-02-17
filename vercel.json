@@ -3,24 +3,18 @@
   "name": "pcu-media",
   "builds": [
     {
-      "src": "server.js",
+      "src": "server-firebase.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server.js"
+      "dest": "/server-firebase.js"
     },
     {
       "src": "/(.*)",
       "dest": "/$1"
     }
-  ],
-  "functions": {
-    "server.js": {
-      "maxDuration": 10
-    }
-  },
-  "scope": "pcu-media"
+  ]
 }
