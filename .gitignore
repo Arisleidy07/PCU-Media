@@ -84,3 +84,6 @@ media/
 *.PNG
 *.JPEG
 *.JPG
+
+# OS
+.DS_Store
