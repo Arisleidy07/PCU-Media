@@ -10,7 +10,21 @@
   </head>
   <body>
     <div id="app">
-      <!-- Sidebar eliminado por requerimiento -->
+      <!-- Sidebar fija (desktop) / deslizable (móvil) -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <img src="Pcu-media.png" class="brand-logo" alt="PCU Media" />
+        </div>
+        <div class="sidebar-content">
+          <div class="folder-tree">
+            <h3>Carpetas</h3>
+            <div id="folderTree" class="tree-content"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Overlay móvil para cerrar sidebar -->
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
       <div id="envBanner" class="env-banner" style="display: none"></div>
 
@@ -25,12 +39,72 @@
       <main class="main-content">
         <!-- Header superior -->
         <header class="header">
-          <div class="header-nav">
-            <button id="tabHome" class="tab-btn is-active" type="button">
-              Inicio
+          <div class="header-left">
+            <button
+              id="menuBtn"
+              class="icon-btn"
+              type="button"
+              aria-label="Abrir menú"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
             </button>
-            <button id="tabFolders" class="tab-btn" type="button">
-              Carpetas
+            <button id="homeBtn" class="tab-btn" type="button">Inicio</button>
+          </div>
+          <div id="actionBar" class="action-bar">
+            <button
+              id="newFolderBtn"
+              class="fab-btn fab-btn--new"
+              title="Nueva carpeta"
+              type="button"
+              aria-label="Nueva carpeta"
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"
+                ></path>
+                <path d="M12 9v6"></path>
+                <path d="M9 12h6"></path>
+              </svg>
+              <span class="action-label">Nueva carpeta</span>
+            </button>
+            <button
+              id="uploadBtn"
+              class="fab-btn fab-btn--upload"
+              title="Subir archivos"
+              type="button"
+              aria-label="Subir archivos"
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <path d="M12 3v12"></path>
+                <path d="M8 7l4-4 4 4"></path>
+              </svg>
+              <span class="action-label">Subir archivos</span>
             </button>
           </div>
         </header>
@@ -76,66 +150,130 @@
             </p>
           </div>
         </div>
-
-        <!-- Botonera flotante de acciones (solo en vista "Carpetas") -->
-        <div id="fabDock" class="fab-dock" style="display: none">
-          <button
-            id="newFolderBtn"
-            class="fab-btn"
-            title="Nueva carpeta"
-            type="button"
-            aria-label="Nueva carpeta"
-          >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M12 5v14"></path>
-              <path d="M5 12h14"></path>
-            </svg>
-          </button>
-          <button
-            id="uploadBtn"
-            class="fab-btn"
-            title="Subir archivos"
-            type="button"
-            aria-label="Subir archivos"
-          >
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-          </button>
-        </div>
       </main>
 
       <!-- Upload Modal -->
       <div id="uploadModal" class="upload-modal">
         <div class="upload-overlay" onclick="closeUploadModal()"></div>
         <div class="upload-dialog">
-          <h3>Subir Archivos</h3>
-          <p>Selecciona la carpeta destino:</p>
-          <select id="uploadFolderSelect" class="upload-folder-select"></select>
-          <div id="uploadPreviewArea" class="upload-preview-area">
-            <p>Arrastra archivos aquí o haz clic para seleccionar</p>
+          <div class="upload-header">
+            <h3>Subir Archivos</h3>
+            <div class="upload-quick-actions">
+              <button
+                id="addMoreBtn"
+                type="button"
+                class="uqa-btn"
+                aria-label="Añadir más archivos"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M12 5v14"></path>
+                  <path d="M5 12h14"></path>
+                </svg>
+                <span>Añadir más</span>
+              </button>
+              <button
+                id="takePhotoBtn"
+                type="button"
+                class="uqa-btn"
+                aria-label="Tomar foto o video"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"
+                  />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+                <span>Tomar foto/video</span>
+              </button>
+              <button
+                id="chooseImageBtn"
+                type="button"
+                class="uqa-btn"
+                aria-label="Elegir fotos de la fototeca"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="3" y="3" width="18" height="14" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <path d="M21 14l-4-4-6 6" />
+                </svg>
+                <span>Elegir fotos</span>
+              </button>
+            </div>
           </div>
+          <div class="upload-top-row">
+            <div id="uploadPreviewArea" class="upload-preview-area">
+              <div class="upload-drop-inner">
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path d="M12 16V3" />
+                  <path d="M7 8l5-5 5 5" />
+                  <rect x="3" y="16" width="18" height="5" rx="2" ry="2"></rect>
+                </svg>
+                <p>Arrastra archivos o haz clic</p>
+              </div>
+            </div>
+            <div id="folderSelectTile" class="folder-select-tile">
+              <div class="fst-content">
+                <div class="fst-title">Seleccionar carpeta de destino</div>
+                <div id="folderSelectTileLabel" class="fst-label">
+                  Selecciona carpeta
+                </div>
+              </div>
+              <select
+                id="uploadFolderSelect"
+                class="upload-folder-select-native"
+              ></select>
+            </div>
+          </div>
+          <h4 class="upload-list-title">Archivos seleccionados</h4>
+          <div id="uploadFileList" class="selected-files-list-host"></div>
           <input
             type="file"
             id="uploadFileInput"
             multiple
             accept="image/*,video/*"
+            style="display: none"
+          />
+          <input
+            type="file"
+            id="uploadCameraInput"
+            multiple
+            accept="image/*,video/*"
+            capture
+            style="display: none"
+          />
+          <input
+            type="file"
+            id="uploadImageInput"
+            multiple
+            accept="image/*"
             style="display: none"
           />
           <div class="upload-actions">
@@ -354,7 +492,7 @@
             <div id="previewContainer"></div>
           </div>
 
-          <div class="preview-info">
+          <div id="previewInfo" class="preview-info">
             <h3 id="previewFileName"></h3>
             <div class="file-details">
               <p><strong>Ruta:</strong> <span id="previewFilePath"></span></p>
@@ -362,7 +500,52 @@
               <p><strong>Tamaño:</strong> <span id="previewFileSize"></span></p>
             </div>
 
+            <div id="previewDescBlock" class="preview-desc">
+              <p id="previewDescText"></p>
+            </div>
+
+            <div class="preview-edit">
+              <label class="pe-label" for="previewNameInput">Nombre</label>
+              <div class="pe-row">
+                <input
+                  id="previewNameInput"
+                  type="text"
+                  class="pe-name"
+                  aria-label="Nombre"
+                />
+                <span id="previewNameExt" class="pe-ext"></span>
+              </div>
+              <label class="pe-label" for="previewDescInput">Descripción</label>
+              <textarea
+                id="previewDescInput"
+                class="pe-desc"
+                rows="3"
+                placeholder="Añade una descripción..."
+              ></textarea>
+              <button id="previewSaveBtn" class="pe-save" type="button">
+                Guardar cambios
+              </button>
+            </div>
+
             <div class="preview-actions">
+              <button id="previewEditBtn" class="download-btn">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"
+                  ></path>
+                  <path
+                    d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                  ></path>
+                </svg>
+                <span>Editar</span>
+              </button>
               <button id="shareBtn" class="share-btn">
                 <svg
                   width="20"

@@ -93,11 +93,12 @@ body {
   top: 8px;
   right: 8px;
   z-index: 2;
-  opacity: 0;
-  transform: translateY(-4px);
+  opacity: 1;
+  transform: translateY(0);
   transition: var(--transition);
 }
 
+/* Kept for smoothness but now redundant since item-actions is always visible */
 .gallery-item:hover .item-actions {
   opacity: 1;
   transform: translateY(0);
