@@ -1,36 +1,45 @@
 // PCU Media Backend Server - Firebase Storage Version
 const express = require("express");
-const path = require("path");
 const multer = require("multer");
 const cors = require("cors");
 const admin = require("firebase-admin");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Inicializar Firebase Admin
-const serviceAccount = {
-  "type": "service_account",
-  "project_id": "pcu-media",
-  "private_key": process.env.FIREBASE_PRIVATE_KEY || "YOUR_PRIVATE_KEY_HERE",
-  "client_email": "firebase-adminsdk-xxxxx@pcu-media.iam.gserviceaccount.com",
-  "client_id": "YOUR_CLIENT_ID",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token"
-};
+if (!admin.apps.length) {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+  const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: "pcu-media.appspot.com"
-});
+  if (!projectId || !clientEmail || !privateKeyRaw || !storageBucket) {
+    throw new Error(
+      "Faltan variables de entorno de Firebase Admin. Requiere FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY y FIREBASE_STORAGE_BUCKET.",
+    );
+  }
+
+  // Vercel guarda saltos de linea como \n, hay que convertirlos a saltos reales
+  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId,
+      clientEmail,
+      privateKey,
+    }),
+    storageBucket,
+  });
+}
 
 const bucket = admin.storage().bucket();
 const db = admin.firestore();
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Configuración de multer para subida de archivos (memoria temporal)
 const upload = multer({
@@ -57,7 +66,7 @@ app.get("/api/health", async (req, res) => {
     res.json({
       ok: true,
       message: "PCU Media API con Firebase Storage funcionando",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e.message || e) });
@@ -73,7 +82,7 @@ app.post("/api/upload", upload.array("files"), async (req, res) => {
     for (const file of req.files) {
       const fileName = `${Date.now()}_${file.originalname}`;
       const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
-      
+
       const blob = bucket.file(filePath);
       const blobStream = blob.createWriteStream({
         metadata: {
@@ -82,14 +91,14 @@ app.post("/api/upload", upload.array("files"), async (req, res) => {
       });
 
       await new Promise((resolve, reject) => {
-        blobStream.on('error', reject);
-        blobStream.on('finish', resolve);
+        blobStream.on("error", reject);
+        blobStream.on("finish", resolve);
         blobStream.end(file.buffer);
       });
 
       // Hacer el archivo público
       await blob.makePublic();
-      
+
       const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
 
       // Guardar metadata en Firestore
@@ -102,10 +111,10 @@ app.post("/api/upload", upload.array("files"), async (req, res) => {
         mimetype: file.mimetype,
         folder: folderPath,
         uploadDate: admin.firestore.FieldValue.serverTimestamp(),
-        type: file.mimetype.startsWith("image/") ? "image" : "video"
+        type: file.mimetype.startsWith("image/") ? "image" : "video",
       };
 
-      await db.collection('files').add(fileDoc);
+      await db.collection("files").add(fileDoc);
 
       uploadedFiles.push({
         name: file.originalname,
@@ -113,7 +122,7 @@ app.post("/api/upload", upload.array("files"), async (req, res) => {
         url: publicUrl,
         size: file.size,
         mimetype: file.mimetype,
-        type: fileDoc.type
+        type: fileDoc.type,
       });
     }
 
@@ -122,7 +131,7 @@ app.post("/api/upload", upload.array("files"), async (req, res) => {
       files: uploadedFiles,
     });
   } catch (error) {
-    console.error('Error uploading files:', error);
+    console.error("Error uploading files:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -131,18 +140,18 @@ app.post("/api/upload", upload.array("files"), async (req, res) => {
 app.get("/api/files", async (req, res) => {
   try {
     const folderPath = req.query.path || "";
-    
-    let query = db.collection('files');
+
+    let query = db.collection("files");
     if (folderPath) {
-      query = query.where('folder', '==', folderPath);
+      query = query.where("folder", "==", folderPath);
     } else {
-      query = query.where('folder', '==', '');
+      query = query.where("folder", "==", "");
     }
 
-    const snapshot = await query.orderBy('uploadDate', 'desc').get();
+    const snapshot = await query.orderBy("uploadDate", "desc").get();
     const files = [];
 
-    snapshot.forEach(doc => {
+    snapshot.forEach((doc) => {
       const data = doc.data();
       files.push({
         id: doc.id,
@@ -151,17 +160,17 @@ app.get("/api/files", async (req, res) => {
         url: data.url,
         size: data.size,
         modified: data.uploadDate,
-        type: data.type
+        type: data.type,
       });
     });
 
     res.json({
       path: folderPath,
       files,
-      orderApplied: false
+      orderApplied: false,
     });
   } catch (error) {
-    console.error('Error getting files:', error);
+    console.error("Error getting files:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -173,19 +182,24 @@ app.delete("/api/file", async (req, res) => {
     const filePath = req.query.path;
 
     if (!fileId && !filePath) {
-      return res.status(400).json({ error: "Se requiere id o path del archivo" });
+      return res
+        .status(400)
+        .json({ error: "Se requiere id o path del archivo" });
     }
 
     let fileDoc;
     if (fileId) {
-      const doc = await db.collection('files').doc(fileId).get();
+      const doc = await db.collection("files").doc(fileId).get();
       if (!doc.exists) {
         return res.status(404).json({ error: "Archivo no encontrado" });
       }
       fileDoc = { id: doc.id, ...doc.data() };
     } else {
       // Buscar por path
-      const snapshot = await db.collection('files').where('path', '==', filePath).get();
+      const snapshot = await db
+        .collection("files")
+        .where("path", "==", filePath)
+        .get();
       if (snapshot.empty) {
         return res.status(404).json({ error: "Archivo no encontrado" });
       }
@@ -197,11 +211,11 @@ app.delete("/api/file", async (req, res) => {
     await bucket.file(fileDoc.path).delete();
 
     // Eliminar de Firestore
-    await db.collection('files').doc(fileDoc.id).delete();
+    await db.collection("files").doc(fileDoc.id).delete();
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting file:', error);
+    console.error("Error deleting file:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -210,14 +224,14 @@ app.delete("/api/file", async (req, res) => {
 app.post("/api/file/rename", async (req, res) => {
   try {
     const { fileId, newName } = req.body;
-    
+
     if (!fileId || !newName) {
       return res.status(400).json({ error: "Faltan parámetros" });
     }
 
-    const docRef = db.collection('files').doc(fileId);
+    const docRef = db.collection("files").doc(fileId);
     const doc = await docRef.get();
-    
+
     if (!doc.exists) {
       return res.status(404).json({ error: "Archivo no encontrado" });
     }
@@ -235,17 +249,17 @@ app.post("/api/file/rename", async (req, res) => {
     await docRef.update({
       name: newName,
       path: newPath,
-      url: newUrl
+      url: newUrl,
     });
 
     res.json({
       success: true,
       name: newName,
       path: newPath,
-      url: newUrl
+      url: newUrl,
     });
   } catch (error) {
-    console.error('Error renaming file:', error);
+    console.error("Error renaming file:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -259,28 +273,28 @@ app.post("/api/folders", async (req, res) => {
     // Crear un archivo .folder para simular la carpeta
     const folderMarkerPath = `${folderPath}/.folder`;
     const blob = bucket.file(folderMarkerPath);
-    
-    await blob.save('folder', {
+
+    await blob.save("folder", {
       metadata: {
-        contentType: 'text/plain'
-      }
+        contentType: "text/plain",
+      },
     });
 
     // Guardar metadata de la carpeta en Firestore
-    await db.collection('folders').add({
+    await db.collection("folders").add({
       name,
       path: folderPath,
-      parent: parent || '',
-      createdDate: admin.firestore.FieldValue.serverTimestamp()
+      parent: parent || "",
+      createdDate: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    res.json({ 
-      success: true, 
-      name, 
-      path: folderPath 
+    res.json({
+      success: true,
+      name,
+      path: folderPath,
     });
   } catch (error) {
-    console.error('Error creating folder:', error);
+    console.error("Error creating folder:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -288,25 +302,25 @@ app.post("/api/folders", async (req, res) => {
 // Obtener estructura de carpetas
 app.get("/api/folders", async (req, res) => {
   try {
-    const snapshot = await db.collection('folders').get();
+    const snapshot = await db.collection("folders").get();
     const folders = [];
 
-    snapshot.forEach(doc => {
+    snapshot.forEach((doc) => {
       const data = doc.data();
       folders.push({
         name: data.name,
         path: data.path,
-        children: []
+        children: [],
       });
     });
 
     res.json({
       root: "",
       name: "PCU Media",
-      children: folders
+      children: folders,
     });
   } catch (error) {
-    console.error('Error getting folders:', error);
+    console.error("Error getting folders:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -322,9 +336,15 @@ app.use((err, req, res, next) => {
 });
 
 // Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`🚀 PCU Media Server con Firebase Storage corriendo en puerto ${PORT}`);
-  console.log(`📁 Archivos guardados en: https://console.firebase.google.com/project/pcu-media/storage`);
-});
+if (process.env.VERCEL !== "1") {
+  app.listen(PORT, () => {
+    console.log(
+      `PCU Media Server con Firebase Storage corriendo en puerto ${PORT}`,
+    );
+    console.log(
+      "Archivos guardados en Firebase Storage (bucket): " + bucket.name,
+    );
+  });
+}
 
 module.exports = app;
