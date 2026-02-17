@@ -5,34 +5,6 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "styles.css",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "theme-executive.css",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "app.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "firebase.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "Pcu-media.png",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "salta.png",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -49,5 +21,6 @@
     "server.js": {
       "maxDuration": 10
     }
-  }
+  },
+  "scope": "pcu-media"
 }

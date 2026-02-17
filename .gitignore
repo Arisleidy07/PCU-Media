@@ -66,3 +66,21 @@ firebase-debug.*.log
 # Package manager lock files (keep one, remove others based on your preference)
 # package-lock.json
 # yarn.lock
+
+# Media files for Vercel deployment (too large)
+media/
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.gif
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.webp
+*.PNG
+*.JPEG
+*.JPG
