@@ -82,7 +82,7 @@ const upload = multer({
 
 // Rutas de la API
 
-app.get("/api/health", async (req, res) => {
+app.get("/health", async (req, res) => {
   try {
     res.json({
       ok: true,
@@ -95,7 +95,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 // Subir archivos a Firebase Storage
-app.post("/api/upload", upload.array("files"), async (req, res) => {
+app.post("/upload", upload.array("files"), async (req, res) => {
   try {
     const folderPath = req.body.dest || "";
     const uploadedFiles = [];
@@ -158,7 +158,7 @@ app.post("/api/upload", upload.array("files"), async (req, res) => {
 });
 
 // Obtener archivos de una carpeta desde Firestore
-app.get("/api/files", async (req, res) => {
+app.get("/files", async (req, res) => {
   try {
     const folderPath = req.query.path || "";
 
@@ -197,7 +197,7 @@ app.get("/api/files", async (req, res) => {
 });
 
 // Eliminar archivo de Firebase Storage y Firestore
-app.delete("/api/file", async (req, res) => {
+app.delete("/file", async (req, res) => {
   try {
     const fileId = req.query.id;
     const filePath = req.query.path;
@@ -242,7 +242,7 @@ app.delete("/api/file", async (req, res) => {
 });
 
 // Renombrar archivo (actualizar metadata en Firestore)
-app.post("/api/file/rename", async (req, res) => {
+app.post("/file/rename", async (req, res) => {
   try {
     const { fileId, newName } = req.body;
 
@@ -286,7 +286,7 @@ app.post("/api/file/rename", async (req, res) => {
 });
 
 // Crear carpeta (solo en Firestore, Firebase Storage no tiene carpetas reales)
-app.post("/api/folders", async (req, res) => {
+app.post("/folders", async (req, res) => {
   try {
     const { parent, name } = req.body;
     const folderPath = parent ? `${parent}/${name}` : name;
@@ -321,7 +321,7 @@ app.post("/api/folders", async (req, res) => {
 });
 
 // Obtener estructura de carpetas
-app.get("/api/folders", async (req, res) => {
+app.get("/folders", async (req, res) => {
   try {
     const snapshot = await db.collection("folders").get();
     const folders = [];
@@ -354,8 +354,4 @@ app.use((err, req, res, next) => {
 });
 
 // Export para Vercel serverless
-module.exports = (req, res) => {
-  // Reescribir la URL para que Express maneje correctamente las rutas /api/*
-  req.url = req.url.replace(/^\/api/, "") || "/";
-  return app(req, res);
-};
+module.exports = app;
