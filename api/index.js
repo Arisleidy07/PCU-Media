@@ -49,7 +49,9 @@ app.use((req, res, next) => {
     try {
       initFirebase();
     } catch (error) {
-      return res.status(500).json({ error: "Firebase initialization failed: " + error.message });
+      return res
+        .status(500)
+        .json({ error: "Firebase initialization failed: " + error.message });
     }
   }
   next();
@@ -351,4 +353,9 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: err.message || String(err) });
 });
 
-module.exports = app;
+// Export para Vercel serverless
+module.exports = (req, res) => {
+  // Reescribir la URL para que Express maneje correctamente las rutas /api/*
+  req.url = req.url.replace(/^\/api/, "") || "/";
+  return app(req, res);
+};
