@@ -7,8 +7,16 @@ const admin = require("firebase-admin");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Inicializar Firebase Admin
-if (!admin.apps.length) {
+// Lazy initialization para Firebase Admin (compatible con Vercel serverless)
+let bucket, db;
+
+function initFirebase() {
+  if (admin.apps.length) {
+    bucket = admin.storage().bucket();
+    db = admin.firestore();
+    return;
+  }
+
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
@@ -31,10 +39,24 @@ if (!admin.apps.length) {
     }),
     storageBucket,
   });
+
+  bucket = admin.storage().bucket();
+  db = admin.firestore();
 }
 
-const bucket = admin.storage().bucket();
-const db = admin.firestore();
+// Middleware para inicializar Firebase en la primera request
+app.use((req, res, next) => {
+  if (!bucket || !db) {
+    try {
+      initFirebase();
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ error: "Firebase initialization failed: " + error.message });
+    }
+  }
+  next();
+});
 
 // Middleware
 app.use(cors());
