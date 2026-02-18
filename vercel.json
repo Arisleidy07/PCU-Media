@@ -1,5 +1,3 @@
 {
-  "rewrites": [
-    { "source": "/api/:match*", "destination": "/api/index/:match*" }
-  ]
+  "routes": [{ "src": "^/api/(.*)$", "dest": "/api/index/$1" }]
 }
