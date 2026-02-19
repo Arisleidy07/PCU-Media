@@ -647,7 +647,7 @@ class PCUMedia {
     if (uploadBtn)
       uploadBtn.addEventListener("click", () => {
         this.playUiSound("upload");
-        this.directUpload();
+        this.openUploadModal();
       });
 
     if (breadcrumbPath) {
@@ -762,15 +762,6 @@ class PCUMedia {
 
     uploadPreviewArea.addEventListener("click", () => uploadFileInput.click());
     uploadFileInput.addEventListener("change", (e) => {
-      if (this._directUploadMode) {
-        this._directUploadMode = false;
-        const files = Array.from(e.target.files || []);
-        try {
-          e.target.value = "";
-        } catch {}
-        if (files.length) this.instantUpload(files);
-        return;
-      }
       const append =
         this.pendingUploadFiles && this.pendingUploadFiles.length > 0;
       this.setPendingUploadFiles(e.target.files, append);
@@ -1351,19 +1342,6 @@ class PCUMedia {
     if (file.type === "video") {
       div.classList.add("is-video");
     }
-
-    // Uploading placeholder with spinner
-    if (file._uploading) {
-      div.classList.add("is-uploading");
-      div.innerHTML = `
-        <div class="upload-spinner-wrap">
-          <div class="upload-spinner"></div>
-          <span class="upload-spinner-label">Subiendo...</span>
-        </div>
-        <div class="file-name">${this.escapeHtml(file.name)}</div>`;
-      return div;
-    }
-
     // Datos para acciones y orden
     div.dataset.filename = file.name;
     div.dataset.filepath = file.path || "";
@@ -1914,78 +1892,6 @@ class PCUMedia {
         doDirect();
       }
     })();
-  }
-
-  directUpload() {
-    this._directUploadMode = true;
-    const input = document.getElementById("uploadFileInput");
-    if (input) input.click();
-  }
-
-  async instantUpload(fileList) {
-    const dest = this.currentPath || "";
-    const files = Array.from(fileList);
-    if (!files.length) return;
-
-    // Show placeholder cards with spinner in the gallery
-    const placeholders = files.map((f, i) => ({
-      name: f.name,
-      path: `__uploading__${i}_${f.name}`,
-      url: "",
-      size: f.size,
-      type: f.type.startsWith("video/") ? "video" : "image",
-      _uploading: true,
-    }));
-    this.files = [...placeholders, ...this.files];
-    this.renderGallery();
-
-    try {
-      const form = new FormData();
-      for (const f of files) {
-        form.append("files", f, f.name);
-      }
-      const qp = new URLSearchParams();
-      qp.set("dest", dest);
-
-      const xhr = new XMLHttpRequest();
-      const url = `/api/upload?${qp.toString()}`;
-      await new Promise((resolve, reject) => {
-        xhr.open("POST", url);
-        xhr.responseType = "json";
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(xhr.response);
-          } else {
-            const payload = xhr.response || {};
-            reject(new Error(payload.error || "Error subiendo archivos"));
-          }
-        };
-        xhr.onerror = () => reject(new Error("Error de red subiendo archivos"));
-        xhr.send(form);
-      });
-
-      this.showToast({
-        title: "Subida completada",
-        message: `${files.length} archivo(s) subido(s)`,
-        variant: "success",
-      });
-
-      await this.refreshFolders();
-      this.homeFolderFiles.delete(dest || "");
-      if (this.isHomeView()) {
-        this.renderHomeAccordion();
-      }
-      await this.loadFiles();
-    } catch (e) {
-      // Remove placeholders on error
-      this.files = this.files.filter((f) => !f._uploading);
-      this.renderGallery();
-      this.showToast({
-        title: "No se pudo subir",
-        message: e && e.message ? e.message : "Error subiendo archivos",
-        variant: "error",
-      });
-    }
   }
 
   openUploadModal() {
