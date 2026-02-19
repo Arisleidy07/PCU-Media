@@ -2,7 +2,6 @@
   "name": "pcu-media",
   "version": "1.0.0",
   "description": "PCU Media - Panel visual para gestionar imágenes y videos de PlayCenter Universal",
-  "main": "server.js",
   "scripts": {
     "start": "node server-firebase.js",
     "dev": "nodemon server-firebase.js",
