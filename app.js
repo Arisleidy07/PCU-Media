@@ -764,11 +764,11 @@ class PCUMedia {
     uploadFileInput.addEventListener("change", (e) => {
       if (this._directUploadMode) {
         this._directUploadMode = false;
-        const files = e.target.files;
+        const files = Array.from(e.target.files || []);
         try {
           e.target.value = "";
         } catch {}
-        if (files && files.length) this.instantUpload(files);
+        if (files.length) this.instantUpload(files);
         return;
       }
       const append =
