@@ -11,7 +11,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyD3P5dfS_CRv9YpSqm33Sq5VF9-_GTdv6Q",
   authDomain: "pcu-media.firebaseapp.com",
   projectId: "pcu-media",
-  storageBucket: "pcu-media.appspot.com",
+  storageBucket: "pcu-media.firebasestorage.app",
   messagingSenderId: "915463451942",
   appId: "1:915463451942:web:408223b651acd0738f3de7",
   measurementId: "G-V9DVBNCJPL",
