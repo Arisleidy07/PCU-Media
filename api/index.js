@@ -3,6 +3,28 @@ const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
 const admin = require("firebase-admin");
+const crypto = require("crypto");
+
+// Helper: genera URL de descarga permanente de Firebase Storage
+function firebaseUrl(bucketName, filePath, token) {
+  return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(filePath)}?alt=media&token=${token}`;
+}
+
+// Helper: obtiene la URL de descarga de un archivo existente en Storage
+async function getDownloadUrl(fileRef) {
+  const [metadata] = await fileRef.getMetadata();
+  const token =
+    metadata.metadata && metadata.metadata.firebaseStorageDownloadTokens;
+  if (token) {
+    return firebaseUrl(fileRef.bucket.name, fileRef.name, token);
+  }
+  // Si no tiene token, asignar uno nuevo
+  const newToken = crypto.randomUUID();
+  await fileRef.setMetadata({
+    metadata: { firebaseStorageDownloadTokens: newToken },
+  });
+  return firebaseUrl(fileRef.bucket.name, fileRef.name, newToken);
+}
 
 const app = express();
 
@@ -106,17 +128,21 @@ app.get("/health", async (req, res) => {
 // Subir archivos a Firebase Storage
 app.post("/upload", upload.array("files"), async (req, res) => {
   try {
-    const folderPath = req.query.dest || req.body.dest || "";
+    const folderPath = req.body.dest || "";
     const uploadedFiles = [];
 
     for (const file of req.files) {
       const fileName = `${Date.now()}_${file.originalname}`;
       const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
 
+      const token = crypto.randomUUID();
       const blob = bucket.file(filePath);
       const blobStream = blob.createWriteStream({
         metadata: {
           contentType: file.mimetype,
+          metadata: {
+            firebaseStorageDownloadTokens: token,
+          },
         },
       });
 
@@ -126,10 +152,7 @@ app.post("/upload", upload.array("files"), async (req, res) => {
         blobStream.end(file.buffer);
       });
 
-      // Hacer el archivo público
-      await blob.makePublic();
-
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+      const publicUrl = firebaseUrl(bucket.name, filePath, token);
 
       // Guardar metadata en Firestore
       const fileDoc = {
@@ -289,11 +312,8 @@ app.post("/file/rename", async (req, res) => {
     // Renombrar en Firebase Storage
     await bucket.file(oldPath).move(bucket.file(newPath));
 
-    // Hacer público el nuevo archivo
-    await bucket.file(newPath).makePublic();
-
-    // Actualizar metadata en Firestore
-    const newUrl = `https://storage.googleapis.com/${bucket.name}/${newPath}`;
+    // Obtener URL de descarga del nuevo archivo
+    const newUrl = await getDownloadUrl(bucket.file(newPath));
     await docRef.update({
       name: newName,
       fileName: newName,
@@ -337,10 +357,9 @@ app.post("/file/move", async (req, res) => {
 
     // Mover en Firebase Storage
     await bucket.file(filePath).move(bucket.file(newPath));
-    await bucket.file(newPath).makePublic();
 
-    // Actualizar en Firestore
-    const newUrl = `https://storage.googleapis.com/${bucket.name}/${newPath}`;
+    // Obtener URL de descarga del nuevo archivo
+    const newUrl = await getDownloadUrl(bucket.file(newPath));
     await doc.ref.update({
       path: newPath,
       folder: dest || "",
@@ -369,10 +388,12 @@ app.post("/folder/rename", async (req, res) => {
 
     // Mover todos los archivos en Storage que estén bajo esta carpeta
     const [storageFiles] = await bucket.getFiles({ prefix: folderPath + "/" });
+    const movedFiles = [];
     for (const file of storageFiles) {
       const newFilePath = file.name.replace(folderPath, newPath);
       await file.move(bucket.file(newFilePath));
-      await bucket.file(newFilePath).makePublic();
+      const url = await getDownloadUrl(bucket.file(newFilePath));
+      movedFiles.push({ oldPath: file.name, newPath: newFilePath, url });
     }
 
     // Actualizar documentos de archivos en Firestore
@@ -384,7 +405,8 @@ app.post("/folder/rename", async (req, res) => {
     filesSnapshot.forEach((doc) => {
       const data = doc.data();
       const newFilePath = data.path.replace(folderPath, newPath);
-      const newUrl = `https://storage.googleapis.com/${bucket.name}/${newFilePath}`;
+      const moved = movedFiles.find((m) => m.newPath === newFilePath);
+      const newUrl = moved ? moved.url : data.url;
       batch1.update(doc.ref, {
         path: newFilePath,
         folder: newPath,
