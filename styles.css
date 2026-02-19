@@ -2108,3 +2108,40 @@ body {
     position: relative;
   }
 }
+
+/* Loading shimmer for upload placeholders */
+.gallery-item.is-loading {
+  position: relative;
+  overflow: hidden;
+  min-height: 160px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.gallery-item.is-loading .gallery-item__name {
+  margin-top: 12px;
+  color: var(--muted-2);
+  font-size: 0.82rem;
+}
+.loading-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

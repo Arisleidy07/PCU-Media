@@ -2530,89 +2530,102 @@ class PCUMedia {
 
     btn.disabled = true;
 
-    // Cerrar modal inmediatamente para UX instantánea
+    // Copiar datos antes de cerrar modal
     const filesToUpload = this.pendingUploadFiles.slice();
     const namesToUpload = this.pendingUploadNames.slice();
     const descsToUpload = this.pendingUploadDescs.slice();
+    const fileCount = filesToUpload.length;
+
+    // Cerrar modal de inmediato
     this.closeUploadModal();
 
-    this.showToast({
-      title: "Subiendo...",
-      message: `${filesToUpload.length} archivo(s) en proceso.`,
-      variant: "success",
-    });
+    // Navegar a la carpeta destino para que el usuario vea los placeholders
+    if ((dest || "") !== (this.currentPath || "")) {
+      this.currentPath = dest || "";
+      this.updateBreadcrumbs();
+      this.renderFolderTree();
+      this.updateFolderToolbar();
+    }
 
+    // Inyectar placeholders de carga en la galeria
+    const galleryGrid = document.getElementById("galleryGrid");
+    const emptyState = document.getElementById("emptyState");
+    if (emptyState) emptyState.style.display = "none";
+    if (galleryGrid) galleryGrid.style.display = "block";
+
+    let placeholderSection = document.getElementById("uploadPlaceholders");
+    if (!placeholderSection) {
+      placeholderSection = document.createElement("div");
+      placeholderSection.id = "uploadPlaceholders";
+      placeholderSection.className = "home-section";
+      if (galleryGrid) galleryGrid.prepend(placeholderSection);
+    }
+    placeholderSection.innerHTML = "";
+    const phHeader = document.createElement("div");
+    phHeader.className = "home-section__header is-static";
+    phHeader.innerHTML =
+      '<span class="home-section__title">Subiendo ' +
+      fileCount +
+      " archivo(s)...</span>";
+    placeholderSection.appendChild(phHeader);
+    const phGrid = document.createElement("div");
+    phGrid.className = "home-section__grid";
+    for (let i = 0; i < fileCount; i++) {
+      const card = document.createElement("div");
+      card.className = "gallery-item is-loading";
+      card.innerHTML =
+        '<div class="loading-shimmer"></div><div class="gallery-item__name">Cargando...</div>';
+      phGrid.appendChild(card);
+    }
+    placeholderSection.appendChild(phGrid);
+
+    // Construir FormData y enviar
     try {
       const form = new FormData();
       const finalPaths = [];
-      for (let i = 0; i < filesToUpload.length; i++) {
+      for (let i = 0; i < fileCount; i++) {
         const f = filesToUpload[i];
         const parts = this.splitFileName(f.name);
         const base = String(namesToUpload[i] || "").trim() || parts.base;
         const newName = base + parts.ext;
         form.append("files", f, newName);
         const finalPath = (dest ? dest + "/" : "") + newName;
-        finalPaths.push({
-          path: finalPath,
-          desc: descsToUpload[i] || "",
-        });
+        finalPaths.push({ path: finalPath, desc: descsToUpload[i] || "" });
       }
 
       const qp = new URLSearchParams();
       qp.set("dest", dest);
 
-      const xhr = new XMLHttpRequest();
-      const url = `/api/upload?${qp.toString()}`;
-      await new Promise((resolve, reject) => {
-        xhr.open("POST", url);
-        xhr.responseType = "json";
-        xhr.onload = () => {
-          const ok = xhr.status >= 200 && xhr.status < 300;
-          const payload =
-            xhr.response ||
-            (() => {
-              try {
-                return JSON.parse(xhr.responseText || "{}");
-              } catch {
-                return {};
-              }
-            })();
-          if (!ok) {
-            reject(
-              new Error(
-                payload && payload.error
-                  ? payload.error
-                  : "Error subiendo archivos",
-              ),
-            );
-          } else {
-            resolve(payload);
-          }
-        };
-        xhr.onerror = () => reject(new Error("Error de red subiendo archivos"));
-        xhr.send(form);
+      const url = "/api/upload?" + qp.toString();
+      const response = await fetch(url, { method: "POST", body: form });
+      const data = await response.json().catch(function () {
+        return {};
       });
 
-      this.showToast({
-        title: "Subida completada",
-        message: `${filesToUpload.length} archivo(s) subido(s).`,
-        variant: "success",
-      });
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Error subiendo archivos (" + response.status + ")",
+        );
+      }
 
       // Guardar descripciones localmente
       for (const it of finalPaths) {
         if (it && it.path) this.setFileMeta(it.path, { description: it.desc });
       }
 
+      // Quitar placeholders y refrescar galeria con datos reales
+      if (placeholderSection) placeholderSection.remove();
       await this.refreshFolders();
       this.homeFolderFiles.delete(dest || "");
-      if (this.isHomeView()) {
-        this.renderHomeAccordion();
-      }
-      if ((dest || "") === (this.currentPath || "")) {
-        await this.loadFiles();
-      }
+      await this.loadFiles();
+
+      this.showToast({
+        title: "Subida completada",
+        message: fileCount + " archivo(s) subido(s).",
+        variant: "success",
+      });
     } catch (e) {
+      if (placeholderSection) placeholderSection.remove();
       this.showToast({
         title: "No se pudo subir",
         message: e && e.message ? e.message : "Error subiendo archivos",

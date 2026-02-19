@@ -96,16 +96,6 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // Configuración de multer para subida de archivos (memoria temporal)
 const upload = multer({
   storage: multer.memoryStorage(),
-  fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype.startsWith("image/") ||
-      file.mimetype.startsWith("video/")
-    ) {
-      cb(null, true);
-    } else {
-      cb(new Error("Solo se permiten archivos de imagen y video"));
-    }
-  },
   limits: {
     fileSize: 100 * 1024 * 1024, // 100MB límite
   },
@@ -126,68 +116,92 @@ app.get("/health", async (req, res) => {
 });
 
 // Subir archivos a Firebase Storage
-app.post("/upload", upload.array("files"), async (req, res) => {
-  try {
-    const folderPath = req.query.dest || req.body.dest || "";
-    const uploadedFiles = [];
-
-    for (const file of req.files) {
-      const fileName = `${Date.now()}_${file.originalname}`;
-      const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
-
-      const token = crypto.randomUUID();
-      const blob = bucket.file(filePath);
-      const blobStream = blob.createWriteStream({
-        metadata: {
-          contentType: file.mimetype,
-          metadata: {
-            firebaseStorageDownloadTokens: token,
-          },
-        },
-      });
-
-      await new Promise((resolve, reject) => {
-        blobStream.on("error", reject);
-        blobStream.on("finish", resolve);
-        blobStream.end(file.buffer);
-      });
-
-      const publicUrl = firebaseUrl(bucket.name, filePath, token);
-
-      // Guardar metadata en Firestore
-      const fileDoc = {
-        name: file.originalname,
-        fileName: fileName,
-        path: filePath,
-        url: publicUrl,
-        size: file.size,
-        mimetype: file.mimetype,
-        folder: folderPath,
-        uploadDate: admin.firestore.FieldValue.serverTimestamp(),
-        type: file.mimetype.startsWith("image/") ? "image" : "video",
-      };
-
-      await db.collection("files").add(fileDoc);
-
-      uploadedFiles.push({
-        name: file.originalname,
-        path: filePath,
-        url: publicUrl,
-        size: file.size,
-        mimetype: file.mimetype,
-        type: fileDoc.type,
-      });
-    }
-
-    res.json({
-      success: true,
-      files: uploadedFiles,
+app.post(
+  "/upload",
+  (req, res, next) => {
+    upload.array("files")(req, res, (err) => {
+      if (err) {
+        console.error("Multer error:", err);
+        return res
+          .status(400)
+          .json({ error: "Error procesando archivos: " + err.message });
+      }
+      next();
     });
-  } catch (error) {
-    console.error("Error uploading files:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
+  },
+  async (req, res) => {
+    try {
+      const folderPath = req.query.dest || req.body.dest || "";
+      const uploadedFiles = [];
+
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: "No se recibieron archivos" });
+      }
+
+      console.log("Upload request:", {
+        folderPath,
+        fileCount: req.files.length,
+        files: req.files.map((f) => f.originalname),
+      });
+
+      for (const file of req.files) {
+        const fileName = `${Date.now()}_${file.originalname}`;
+        const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
+
+        const token = crypto.randomUUID();
+        const blob = bucket.file(filePath);
+        const blobStream = blob.createWriteStream({
+          metadata: {
+            contentType: file.mimetype,
+            metadata: {
+              firebaseStorageDownloadTokens: token,
+            },
+          },
+        });
+
+        await new Promise((resolve, reject) => {
+          blobStream.on("error", reject);
+          blobStream.on("finish", resolve);
+          blobStream.end(file.buffer);
+        });
+
+        const publicUrl = firebaseUrl(bucket.name, filePath, token);
+
+        // Guardar metadata en Firestore
+        const fileDoc = {
+          name: file.originalname,
+          fileName: fileName,
+          path: filePath,
+          url: publicUrl,
+          size: file.size,
+          mimetype: file.mimetype,
+          folder: folderPath,
+          uploadDate: admin.firestore.FieldValue.serverTimestamp(),
+          type: file.mimetype.startsWith("image/") ? "image" : "video",
+        };
+
+        await db.collection("files").add(fileDoc);
+
+        uploadedFiles.push({
+          name: file.originalname,
+          path: filePath,
+          url: publicUrl,
+          size: file.size,
+          mimetype: file.mimetype,
+          type: fileDoc.type,
+        });
+      }
+
+      res.json({
+        success: true,
+        files: uploadedFiles,
+      });
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      res.status(500).json({ error: error.message });
+    }
+  },
+);
 
 // Obtener archivos de una carpeta desde Firestore
 app.get("/files", async (req, res) => {
