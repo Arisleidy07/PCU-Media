@@ -128,7 +128,7 @@ app.get("/health", async (req, res) => {
 // Subir archivos a Firebase Storage
 app.post("/upload", upload.array("files"), async (req, res) => {
   try {
-    const folderPath = req.body.dest || "";
+    const folderPath = req.query.dest || req.body.dest || "";
     const uploadedFiles = [];
 
     for (const file of req.files) {

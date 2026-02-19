@@ -2524,83 +2524,48 @@ class PCUMedia {
 
   async confirmUpload() {
     const uploadFolderSelect = document.getElementById("uploadFolderSelect");
-    const dest = (uploadFolderSelect && uploadFolderSelect.value) || "";
+    let dest = (uploadFolderSelect && uploadFolderSelect.value) || "";
     const btn = document.getElementById("uploadConfirmBtn");
     if (!this.pendingUploadFiles.length) return;
 
-    // Require a real destination (root is not valid). If empty, alert and pulse the tile.
-    if (!dest) {
-      this.showToast({
-        title: "Carpeta requerida",
-        message: "Debes seleccionar una carpeta de destino.",
-        variant: "error",
-      });
-      const tile = document.getElementById("folderSelectTile");
-      if (tile) {
-        try {
-          tile.scrollIntoView({ behavior: "smooth", block: "center" });
-        } catch {}
-        tile.classList.add("pulse-attention");
-        setTimeout(() => tile.classList.remove("pulse-attention"), 1400);
-      }
-      return;
-    }
-
-    const prevLabel = btn.textContent;
     btn.disabled = true;
-    btn.textContent = "Subiendo... 0%";
+
+    // Cerrar modal inmediatamente para UX instantánea
+    const filesToUpload = this.pendingUploadFiles.slice();
+    const namesToUpload = this.pendingUploadNames.slice();
+    const descsToUpload = this.pendingUploadDescs.slice();
+    this.closeUploadModal();
+
+    this.showToast({
+      title: "Subiendo...",
+      message: `${filesToUpload.length} archivo(s) en proceso.`,
+      variant: "success",
+    });
 
     try {
       const form = new FormData();
       const finalPaths = [];
-      for (let i = 0; i < this.pendingUploadFiles.length; i++) {
-        const f = this.pendingUploadFiles[i];
+      for (let i = 0; i < filesToUpload.length; i++) {
+        const f = filesToUpload[i];
         const parts = this.splitFileName(f.name);
-        const base =
-          String(this.pendingUploadNames[i] || "").trim() || parts.base;
+        const base = String(namesToUpload[i] || "").trim() || parts.base;
         const newName = base + parts.ext;
         form.append("files", f, newName);
         const finalPath = (dest ? dest + "/" : "") + newName;
         finalPaths.push({
           path: finalPath,
-          desc: this.pendingUploadDescs[i] || "",
+          desc: descsToUpload[i] || "",
         });
       }
 
       const qp = new URLSearchParams();
       qp.set("dest", dest);
 
-      const dialog = document.querySelector(".upload-dialog");
-      let progress = document.getElementById("uploadProgress");
-      if (!progress) {
-        progress = document.createElement("div");
-        progress.id = "uploadProgress";
-        progress.className = "upload-progress";
-        progress.innerHTML =
-          '<div class="upload-progress__bar"></div><div class="upload-progress__label">0%</div>';
-        if (dialog) dialog.appendChild(progress);
-      }
-      const bar = progress.querySelector(".upload-progress__bar");
-      const label = progress.querySelector(".upload-progress__label");
-      progress.style.display = "block";
-
-      const updatePct = (p) => {
-        const pct = Math.max(0, Math.min(100, Math.round(p)));
-        if (bar) bar.style.width = pct + "%";
-        if (label) label.textContent = pct + "%";
-        btn.textContent = `Subiendo... ${pct}%`;
-      };
-
       const xhr = new XMLHttpRequest();
       const url = `/api/upload?${qp.toString()}`;
-      const dataP = await new Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => {
         xhr.open("POST", url);
         xhr.responseType = "json";
-        xhr.upload.onprogress = (e) => {
-          if (e && e.lengthComputable) {
-            updatePct((e.loaded / e.total) * 100);
-          }
-        };
         xhr.onload = () => {
           const ok = xhr.status >= 200 && xhr.status < 300;
           const payload =
@@ -2630,7 +2595,7 @@ class PCUMedia {
 
       this.showToast({
         title: "Subida completada",
-        message: `${this.pendingUploadFiles.length} archivo(s) subido(s).`,
+        message: `${filesToUpload.length} archivo(s) subido(s).`,
         variant: "success",
       });
 
@@ -2639,11 +2604,7 @@ class PCUMedia {
         if (it && it.path) this.setFileMeta(it.path, { description: it.desc });
       }
 
-      if (progress) progress.style.display = "none";
-      this.closeUploadModal();
-
       await this.refreshFolders();
-      // Limpiar caché de Inicio para carpeta destino y refrescar si aplica
       this.homeFolderFiles.delete(dest || "");
       if (this.isHomeView()) {
         this.renderHomeAccordion();
@@ -2652,16 +2613,11 @@ class PCUMedia {
         await this.loadFiles();
       }
     } catch (e) {
-      void 0;
       this.showToast({
         title: "No se pudo subir",
         message: e && e.message ? e.message : "Error subiendo archivos",
         variant: "error",
       });
-      btn.disabled = false;
-      btn.textContent = prevLabel;
-      const progress = document.getElementById("uploadProgress");
-      if (progress) progress.style.display = "none";
     }
   }
 
