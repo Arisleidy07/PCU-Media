@@ -250,19 +250,34 @@ app.delete("/file", async (req, res) => {
   }
 });
 
-// Renombrar archivo (actualizar metadata en Firestore)
+// Renombrar archivo (acepta path o fileId)
 app.post("/file/rename", async (req, res) => {
   try {
-    const { fileId, newName } = req.body;
+    const { fileId, path, newName } = req.body;
 
-    if (!fileId || !newName) {
-      return res.status(400).json({ error: "Faltan parámetros" });
+    if ((!fileId && !path) || !newName) {
+      return res
+        .status(400)
+        .json({ error: "Faltan parámetros (path o fileId, y newName)" });
     }
 
-    const docRef = db.collection("files").doc(fileId);
-    const doc = await docRef.get();
+    let docRef, doc;
+    if (fileId) {
+      docRef = db.collection("files").doc(fileId);
+      doc = await docRef.get();
+    } else {
+      const snapshot = await db
+        .collection("files")
+        .where("path", "==", path)
+        .get();
+      if (snapshot.empty) {
+        return res.status(404).json({ error: "Archivo no encontrado" });
+      }
+      doc = snapshot.docs[0];
+      docRef = doc.ref;
+    }
 
-    if (!doc.exists) {
+    if (!doc.exists && !doc.data) {
       return res.status(404).json({ error: "Archivo no encontrado" });
     }
 
@@ -274,10 +289,14 @@ app.post("/file/rename", async (req, res) => {
     // Renombrar en Firebase Storage
     await bucket.file(oldPath).move(bucket.file(newPath));
 
+    // Hacer público el nuevo archivo
+    await bucket.file(newPath).makePublic();
+
     // Actualizar metadata en Firestore
     const newUrl = `https://storage.googleapis.com/${bucket.name}/${newPath}`;
     await docRef.update({
       name: newName,
+      fileName: newName,
       path: newPath,
       url: newUrl,
     });
@@ -294,13 +313,195 @@ app.post("/file/rename", async (req, res) => {
   }
 });
 
-// Crear carpeta (solo en Firestore, Firebase Storage no tiene carpetas reales)
+// Mover archivo a otra carpeta
+app.post("/file/move", async (req, res) => {
+  try {
+    const { path: filePath, dest, overwrite } = req.body;
+
+    if (!filePath) {
+      return res.status(400).json({ error: "Se requiere path del archivo" });
+    }
+
+    // Buscar archivo en Firestore
+    const snapshot = await db
+      .collection("files")
+      .where("path", "==", filePath)
+      .get();
+    if (snapshot.empty) {
+      return res.status(404).json({ error: "Archivo no encontrado" });
+    }
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+    const fileName = data.name || filePath.split("/").pop();
+    const newPath = dest ? `${dest}/${fileName}` : fileName;
+
+    // Mover en Firebase Storage
+    await bucket.file(filePath).move(bucket.file(newPath));
+    await bucket.file(newPath).makePublic();
+
+    // Actualizar en Firestore
+    const newUrl = `https://storage.googleapis.com/${bucket.name}/${newPath}`;
+    await doc.ref.update({
+      path: newPath,
+      folder: dest || "",
+      url: newUrl,
+    });
+
+    res.json({ success: true, path: newPath, url: newUrl });
+  } catch (error) {
+    console.error("Error moving file:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Renombrar carpeta
+app.post("/folder/rename", async (req, res) => {
+  try {
+    const { path: folderPath, newName } = req.body;
+
+    if (!folderPath || !newName) {
+      return res.status(400).json({ error: "Faltan parámetros" });
+    }
+
+    const parts = folderPath.split("/");
+    parts[parts.length - 1] = newName;
+    const newPath = parts.join("/");
+
+    // Mover todos los archivos en Storage que estén bajo esta carpeta
+    const [storageFiles] = await bucket.getFiles({ prefix: folderPath + "/" });
+    for (const file of storageFiles) {
+      const newFilePath = file.name.replace(folderPath, newPath);
+      await file.move(bucket.file(newFilePath));
+      await bucket.file(newFilePath).makePublic();
+    }
+
+    // Actualizar documentos de archivos en Firestore
+    const filesSnapshot = await db
+      .collection("files")
+      .where("folder", "==", folderPath)
+      .get();
+    const batch1 = db.batch();
+    filesSnapshot.forEach((doc) => {
+      const data = doc.data();
+      const newFilePath = data.path.replace(folderPath, newPath);
+      const newUrl = `https://storage.googleapis.com/${bucket.name}/${newFilePath}`;
+      batch1.update(doc.ref, {
+        path: newFilePath,
+        folder: newPath,
+        url: newUrl,
+      });
+    });
+    await batch1.commit();
+
+    // Actualizar subcarpetas en Firestore
+    const allFolders = await db.collection("folders").get();
+    const batch2 = db.batch();
+    allFolders.forEach((doc) => {
+      const data = doc.data();
+      if (data.path === folderPath) {
+        batch2.update(doc.ref, { name: newName, path: newPath });
+      } else if (data.path.startsWith(folderPath + "/")) {
+        const updatedPath = data.path.replace(folderPath, newPath);
+        const updatedParent = data.parent
+          ? data.parent.replace(folderPath, newPath)
+          : data.parent;
+        batch2.update(doc.ref, { path: updatedPath, parent: updatedParent });
+      }
+    });
+    await batch2.commit();
+
+    res.json({ success: true, name: newName, path: newPath });
+  } catch (error) {
+    console.error("Error renaming folder:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Eliminar carpeta y su contenido
+app.delete("/folder", async (req, res) => {
+  try {
+    const folderPath = req.query.path;
+
+    if (!folderPath) {
+      return res.status(400).json({ error: "Se requiere path de la carpeta" });
+    }
+
+    // Eliminar todos los archivos en Storage bajo esta carpeta
+    const [storageFiles] = await bucket.getFiles({ prefix: folderPath + "/" });
+    for (const file of storageFiles) {
+      await file.delete().catch(() => {});
+    }
+
+    // Eliminar documentos de archivos en Firestore
+    const filesSnapshot = await db
+      .collection("files")
+      .where("folder", "==", folderPath)
+      .get();
+    const batch1 = db.batch();
+    filesSnapshot.forEach((doc) => batch1.delete(doc.ref));
+    await batch1.commit();
+
+    // Eliminar la carpeta y subcarpetas en Firestore
+    const allFolders = await db.collection("folders").get();
+    const batch2 = db.batch();
+    allFolders.forEach((doc) => {
+      const data = doc.data();
+      if (data.path === folderPath || data.path.startsWith(folderPath + "/")) {
+        batch2.delete(doc.ref);
+      }
+    });
+    await batch2.commit();
+
+    // También eliminar archivos de subcarpetas en Firestore
+    const subFiles = await db.collection("files").get();
+    const batch3 = db.batch();
+    subFiles.forEach((doc) => {
+      const data = doc.data();
+      if (data.folder && data.folder.startsWith(folderPath + "/")) {
+        batch3.delete(doc.ref);
+      }
+    });
+    await batch3.commit();
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting folder:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Guardar orden personalizado de archivos
+app.post("/order", async (req, res) => {
+  try {
+    const { folder, order } = req.body;
+    const key = folder || "__root__";
+    await db
+      .collection("order")
+      .doc(key)
+      .set({ order: order || [] });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error saving order:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Crear carpeta
 app.post("/folders", async (req, res) => {
   try {
     const { parent, name } = req.body;
     const folderPath = parent ? `${parent}/${name}` : name;
 
-    // Crear un archivo .folder para simular la carpeta
+    // Verificar que no exista ya
+    const existing = await db
+      .collection("folders")
+      .where("path", "==", folderPath)
+      .get();
+    if (!existing.empty) {
+      return res.status(409).json({ error: "La carpeta ya existe" });
+    }
+
+    // Crear un archivo .folder para simular la carpeta en Storage
     const folderMarkerPath = `${folderPath}/.folder`;
     const blob = bucket.file(folderMarkerPath);
 
