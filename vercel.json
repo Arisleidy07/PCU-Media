@@ -2,6 +2,5 @@
   "routes": [
     { "handle": "filesystem" },
     { "src": "/api/.*", "dest": "/api/index.js" }
-  ],
-  "ignoredFiles": ["server.js", "server-firebase.js"]
+  ]
 }
