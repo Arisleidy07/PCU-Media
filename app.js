@@ -2539,7 +2539,7 @@ class PCUMedia {
     // Cerrar modal de inmediato
     this.closeUploadModal();
 
-    // Navegar a la carpeta destino para que el usuario vea los placeholders
+    // Navegar a la carpeta destino
     if ((dest || "") !== (this.currentPath || "")) {
       this.currentPath = dest || "";
       this.updateBreadcrumbs();
@@ -2547,90 +2547,57 @@ class PCUMedia {
       this.updateFolderToolbar();
     }
 
-    // Inyectar placeholders de carga en la galeria
-    const galleryGrid = document.getElementById("galleryGrid");
-    const emptyState = document.getElementById("emptyState");
-    if (emptyState) emptyState.style.display = "none";
-    if (galleryGrid) galleryGrid.style.display = "block";
-
-    let placeholderSection = document.getElementById("uploadPlaceholders");
-    if (!placeholderSection) {
-      placeholderSection = document.createElement("div");
-      placeholderSection.id = "uploadPlaceholders";
-      placeholderSection.className = "home-section";
-      if (galleryGrid) galleryGrid.prepend(placeholderSection);
-    }
-    placeholderSection.innerHTML = "";
-    const phHeader = document.createElement("div");
-    phHeader.className = "home-section__header is-static";
-    phHeader.innerHTML =
-      '<span class="home-section__title">Subiendo ' +
-      fileCount +
-      " archivo(s)...</span>";
-    placeholderSection.appendChild(phHeader);
-    const phGrid = document.createElement("div");
-    phGrid.className = "home-section__grid";
-    for (let i = 0; i < fileCount; i++) {
-      const card = document.createElement("div");
-      card.className = "gallery-item is-loading";
-      card.innerHTML =
-        '<div class="loading-shimmer"></div><div class="gallery-item__name">Cargando...</div>';
-      phGrid.appendChild(card);
-    }
-    placeholderSection.appendChild(phGrid);
-
-    // Construir FormData y enviar
     try {
-      const form = new FormData();
-      const finalPaths = [];
-      for (let i = 0; i < fileCount; i++) {
-        const f = filesToUpload[i];
-        const parts = this.splitFileName(f.name);
-        const base = String(namesToUpload[i] || "").trim() || parts.base;
-        const newName = base + parts.ext;
-        form.append("files", f, newName);
-        const finalPath = (dest ? dest + "/" : "") + newName;
-        finalPaths.push({ path: finalPath, desc: descsToUpload[i] || "" });
+      for (var i = 0; i < fileCount; i++) {
+        var f = filesToUpload[i];
+        var parts = this.splitFileName(f.name);
+        var base = String(namesToUpload[i] || "").trim() || parts.base;
+        var newName = base + parts.ext;
+        var fileName = Date.now() + "_" + newName;
+        var filePath = dest ? dest + "/" + fileName : fileName;
+
+        // Subir directo a Firebase Storage desde el navegador
+        var sRef = window.fbRef(window.fbStorage, filePath);
+        var snapshot = await window.fbUploadBytes(sRef, f, {
+          contentType: f.type || "application/octet-stream",
+        });
+        var downloadURL = await window.fbGetDownloadURL(snapshot.ref);
+
+        // Registrar metadata en Firestore via API
+        await fetch("/api/register-file", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: newName,
+            path: filePath,
+            url: downloadURL,
+            size: f.size,
+            mimetype: f.type || "application/octet-stream",
+            folder: dest,
+          }),
+        });
+
+        // Guardar descripcion local
+        this.setFileMeta(filePath, { description: descsToUpload[i] || "" });
       }
 
-      const qp = new URLSearchParams();
-      qp.set("dest", dest);
-
-      const url = "/api/upload?" + qp.toString();
-      const response = await fetch(url, { method: "POST", body: form });
-      const data = await response.json().catch(function () {
-        return {};
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Error subiendo archivos (" + response.status + ")",
-        );
-      }
-
-      // Guardar descripciones localmente
-      for (const it of finalPaths) {
-        if (it && it.path) this.setFileMeta(it.path, { description: it.desc });
-      }
-
-      // Quitar placeholders y refrescar galeria con datos reales
-      if (placeholderSection) placeholderSection.remove();
+      // Refrescar galeria con los archivos reales
       await this.refreshFolders();
       this.homeFolderFiles.delete(dest || "");
       await this.loadFiles();
 
       this.showToast({
-        title: "Subida completada",
+        title: "Listo",
         message: fileCount + " archivo(s) subido(s).",
         variant: "success",
       });
     } catch (e) {
-      if (placeholderSection) placeholderSection.remove();
       this.showToast({
         title: "No se pudo subir",
         message: e && e.message ? e.message : "Error subiendo archivos",
         variant: "error",
       });
+      await this.loadFiles();
     }
   }
 

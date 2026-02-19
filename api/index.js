@@ -203,6 +203,35 @@ app.post(
   },
 );
 
+// Registrar metadata de archivo subido desde el cliente
+app.post("/register-file", async (req, res) => {
+  try {
+    const { name, path, url, size, mimetype, folder } = req.body;
+    if (!name || !path || !url) {
+      return res
+        .status(400)
+        .json({ error: "Faltan campos requeridos (name, path, url)" });
+    }
+    const type = (mimetype || "").startsWith("video/") ? "video" : "image";
+    const fileDoc = {
+      name,
+      fileName: path.split("/").pop(),
+      path,
+      url,
+      size: size || 0,
+      mimetype: mimetype || "application/octet-stream",
+      folder: folder || "",
+      uploadDate: admin.firestore.FieldValue.serverTimestamp(),
+      type,
+    };
+    await db.collection("files").add(fileDoc);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error registering file:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Obtener archivos de una carpeta desde Firestore
 app.get("/files", async (req, res) => {
   try {

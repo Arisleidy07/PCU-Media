@@ -4,7 +4,15 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-analytics.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-storage.js";
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+  listAll,
+  getMetadata,
+} from "https://www.gstatic.com/firebasejs/9.17.2/firebase-storage.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -17,57 +25,13 @@ const firebaseConfig = {
   measurementId: "G-V9DVBNCJPL",
 };
 
-export const firebaseApp = initializeApp(firebaseConfig);
-export const analytics = getAnalytics(firebaseApp);
-export const storage = getStorage(firebaseApp);
-export const db = getFirestore(firebaseApp);
+const firebaseApp = initializeApp(firebaseConfig);
+const analytics = getAnalytics(firebaseApp);
+const storage = getStorage(firebaseApp);
+const db = getFirestore(firebaseApp);
 
-// Funciones helper para Firebase Storage
-export const uploadFileToFirebase = async (file, folderPath = "") => {
-  const storageRef = ref(storage, `${folderPath}/${file.name}`);
-  const snapshot = await uploadBytes(storageRef, file);
-  const downloadURL = await getDownloadURL(snapshot);
-  return {
-    name: file.name,
-    path: `${folderPath}/${file.name}`,
-    url: downloadURL,
-    size: file.size,
-    type: file.type,
-  };
-};
-
-export const deleteFileFromFirebase = async (filePath) => {
-  const storageRef = ref(storage, filePath);
-  await deleteObject(storageRef);
-};
-
-export const listFilesInFolder = async (folderPath = "") => {
-  const storageRef = ref(storage, folderPath);
-  const listResult = await listAll(storageRef);
-
-  const files = [];
-  for (const itemRef of listResult.items) {
-    const downloadURL = await getDownloadURL(itemRef);
-    const metadata = await getMetadata(itemRef);
-    files.push({
-      name: itemRef.name,
-      path: itemRef.fullPath,
-      url: downloadURL,
-      size: metadata.size,
-      type: metadata.contentType,
-      modified: metadata.updated,
-    });
-  }
-
-  return files;
-};
-
-// Importar funciones necesarias
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-  listAll,
-  getMetadata,
-} from "https://www.gstatic.com/firebasejs/9.17.2/firebase-storage.js";
+// Exponer funciones de upload en window para que app.js pueda usarlas
+window.fbStorage = storage;
+window.fbRef = ref;
+window.fbUploadBytes = uploadBytes;
+window.fbGetDownloadURL = getDownloadURL;
