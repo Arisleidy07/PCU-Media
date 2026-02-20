@@ -1317,6 +1317,9 @@ class PCUMedia {
 
     const videos = sortedFiles.filter((f) => f.type === "video");
     const images = sortedFiles.filter((f) => f.type === "image");
+    const docs = sortedFiles.filter(
+      (f) => f.type !== "video" && f.type !== "image",
+    );
 
     const makeSection = (title, items) => {
       if (!items.length) return null;
@@ -1351,6 +1354,8 @@ class PCUMedia {
     if (videosSection) galleryGrid.appendChild(videosSection);
     const imagesSection = makeSection("Imágenes", images);
     if (imagesSection) galleryGrid.appendChild(imagesSection);
+    const docsSection = makeSection("Documentos", docs);
+    if (docsSection) galleryGrid.appendChild(docsSection);
   }
 
   createGalleryItem(file) {
@@ -1379,26 +1384,6 @@ class PCUMedia {
       });
     }
 
-    const mediaElement =
-      file.type === "video"
-        ? `<video src="${file.url}" autoplay muted loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`
-        : `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center">`;
-
-    const videoIndicator =
-      file.type === "video"
-        ? `<div class="video-indicator">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                Video
-               </div>`
-        : "";
-
-    const fileNameHtml =
-      file.type === "video"
-        ? ""
-        : `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
-
     const actionsHtml = `
       <div class="item-actions">
         <button class="item-actions__btn" type="button" aria-label="Editar o gestionar">
@@ -1410,7 +1395,32 @@ class PCUMedia {
         </button>
       </div>`;
 
-    div.innerHTML = `${actionsHtml}${mediaElement}${videoIndicator}${fileNameHtml}`;
+    let mediaElement, typeIndicator, fileNameHtml;
+
+    if (file.type === "video") {
+      mediaElement = `<video src="${file.url}" autoplay muted loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
+      typeIndicator = `<div class="video-indicator"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Video</div>`;
+      fileNameHtml = "";
+    } else if (file.type === "image") {
+      mediaElement = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center" loading="lazy">`;
+      typeIndicator = "";
+      fileNameHtml = `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
+    } else {
+      // Document / PDF / other
+      const ext = (file.name || "").split(".").pop().toUpperCase() || "FILE";
+      const isPdf = ext === "PDF";
+      mediaElement = `<div class="doc-preview">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <span class="doc-ext">${this.escapeHtml(ext)}</span>
+      </div>`;
+      typeIndicator = `<div class="doc-indicator">${this.escapeHtml(ext)}</div>`;
+      fileNameHtml = `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
+    }
+
+    div.innerHTML = `${actionsHtml}${mediaElement}${typeIndicator}${fileNameHtml}`;
 
     div.addEventListener("click", (e) => {
       const t = e.target;
@@ -1819,8 +1829,23 @@ class PCUMedia {
     // Set media content
     if (file.type === "video") {
       container.innerHTML = `<video src="${file.url}" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
-    } else {
+    } else if (file.type === "image") {
       container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center">`;
+    } else {
+      // Document / PDF — show iframe for PDF, download link for others
+      const ext = (file.name || "").split(".").pop().toLowerCase();
+      if (ext === "pdf") {
+        container.innerHTML = `<iframe src="${file.url}" style="width:100%;height:100%;border:none;border-radius:8px;" title="${this.escapeHtml(file.name)}"></iframe>`;
+      } else {
+        container.innerHTML = `<div class="doc-preview-modal">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <p style="margin:12px 0 4px;font-weight:600;">${this.escapeHtml(file.name)}</p>
+          <a href="${file.url}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:14px;">Abrir archivo</a>
+        </div>`;
+      }
     }
 
     // Rellenar edición de nombre y descripción
@@ -2429,9 +2454,7 @@ class PCUMedia {
     } catch {}
 
     const incoming = Array.from(fileList || []).filter((f) => {
-      return (
-        f.type && (f.type.startsWith("image/") || f.type.startsWith("video/"))
-      );
+      return f && f.name; // Accept all file types
     });
 
     let files;
@@ -2492,9 +2515,16 @@ class PCUMedia {
       const parts = this.splitFileName(f.name);
       const url = this.pendingUploadObjectUrls[i];
       const isImg = (f.type || "").startsWith("image/");
-      const mediaHtml = isImg
-        ? `<img class="selected-file-thumb" src="${url}" alt="${this.escapeHtml(parts.base)}" style="width:100%;height:100%;object-fit:contain;object-position:center" />`
-        : `<video class="selected-file-thumb" src="${url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
+      const isVid = (f.type || "").startsWith("video/");
+      const ext = parts.ext.replace(".", "").toUpperCase() || "FILE";
+      let mediaHtml;
+      if (isImg) {
+        mediaHtml = `<img class="selected-file-thumb" src="${url}" alt="${this.escapeHtml(parts.base)}" style="width:100%;height:100%;object-fit:contain;object-position:center" />`;
+      } else if (isVid) {
+        mediaHtml = `<video class="selected-file-thumb" src="${url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
+      } else {
+        mediaHtml = `<div class="selected-file-doc-thumb"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="doc-ext">${this.escapeHtml(ext)}</span></div>`;
+      }
       const titleVal = this.escapeHtml(
         this.pendingUploadNames[i] || parts.base,
       );
@@ -2516,14 +2546,14 @@ class PCUMedia {
         thumbwrap.style.cursor = "pointer";
         thumbwrap.addEventListener("click", (e) => {
           e.stopPropagation();
-          const isVideo = (f.type || "").startsWith("video/");
+          const fileType = isVid ? "video" : isImg ? "image" : "document";
           const previewFile = {
             name: f.name,
             url: url,
             size: f.size || 0,
             date: new Date(),
             path: "",
-            type: isVideo ? "video" : "image",
+            type: fileType,
           };
           this.openPreview(previewFile);
         });

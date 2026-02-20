@@ -177,7 +177,11 @@ app.post(
           mimetype: file.mimetype,
           folder: folderPath,
           uploadDate: admin.firestore.FieldValue.serverTimestamp(),
-          type: file.mimetype.startsWith("image/") ? "image" : "video",
+          type: file.mimetype.startsWith("image/")
+            ? "image"
+            : file.mimetype.startsWith("video/")
+              ? "video"
+              : "document",
         };
 
         await db.collection("files").add(fileDoc);
@@ -212,7 +216,12 @@ app.post("/register-file", async (req, res) => {
         .status(400)
         .json({ error: "Faltan campos requeridos (name, path, url)" });
     }
-    const type = (mimetype || "").startsWith("video/") ? "video" : "image";
+    const mt = mimetype || "";
+    const type = mt.startsWith("video/")
+      ? "video"
+      : mt.startsWith("image/")
+        ? "image"
+        : "document";
     const fileDoc = {
       name,
       fileName: path.split("/").pop(),
