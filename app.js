@@ -241,7 +241,7 @@ class PCUMedia {
     }
     if (extEl) extEl.textContent = parts.ext || "";
     modal.classList.add("active");
-    document.body.style.overflow = "hidden";
+    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
   }
 
   closeRenameFileModal() {
@@ -334,7 +334,7 @@ class PCUMedia {
     const nameEl = document.getElementById("deleteFileName");
     if (nameEl) nameEl.textContent = file.name;
     modal.classList.add("active");
-    document.body.style.overflow = "hidden";
+    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
   }
 
   closeDeleteFileModal() {
@@ -402,7 +402,7 @@ class PCUMedia {
       window.setTimeout(() => input.focus(), 30);
     }
     modal.classList.add("active");
-    document.body.style.overflow = "hidden";
+    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
   }
 
   closeRenameFolderModal() {
@@ -467,7 +467,7 @@ class PCUMedia {
     const nameEl = document.getElementById("deleteFolderName");
     if (nameEl) nameEl.textContent = node.name || "";
     modal.classList.add("active");
-    document.body.style.overflow = "hidden";
+    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
   }
 
   closeDeleteFolderModal() {
@@ -753,12 +753,11 @@ class PCUMedia {
       });
     }
 
-    document
-      .getElementById("shareBtn")
-      .addEventListener("click", () => this.shareFile());
-    document
-      .getElementById("downloadBtn")
-      .addEventListener("click", () => this.downloadFile());
+    const shareBtn = document.getElementById("shareBtn");
+    if (shareBtn) shareBtn.addEventListener("click", () => this.shareFile());
+    const downloadBtn = document.getElementById("downloadBtn");
+    if (downloadBtn)
+      downloadBtn.addEventListener("click", () => this.downloadFile());
 
     uploadPreviewArea.addEventListener("click", () => uploadFileInput.click());
     uploadFileInput.addEventListener("change", (e) => {
@@ -1175,6 +1174,10 @@ class PCUMedia {
 
   async navigateToFolder(relPath) {
     this.currentPath = relPath || "";
+    // Cerrar cualquier menú contextual abierto
+    this.closeActionMenu();
+    // Restaurar scroll del body por si había modal abierto
+    document.body.style.overflow = "";
     this.updateBreadcrumbs();
     this.renderFolderTree();
     this.updateFolderToolbar();
@@ -1925,20 +1928,30 @@ class PCUMedia {
   openUploadModal() {
     const modal = document.getElementById("uploadModal");
     modal.classList.add("active");
-    document.body.style.overflow = "hidden";
+    // Only lock body scroll on desktop; on mobile the dialog itself scrolls
+    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
 
     this.populateUploadFolderSelect();
     this.setPendingUploadFiles([], false);
 
     const uploadFolderSelect = document.getElementById("uploadFolderSelect");
     const initialDest = this.currentPath || "";
-    if (initialDest) {
+    if (initialDest && uploadFolderSelect) {
+      // Try to set value; it may not exist yet if folders are loading
       uploadFolderSelect.value = initialDest;
-    } // else keep placeholder selected
+      // If value didn't stick (option not present), add it temporarily
+      if (uploadFolderSelect.value !== initialDest) {
+        const opt = document.createElement("option");
+        opt.value = initialDest;
+        opt.textContent = "/" + initialDest;
+        uploadFolderSelect.appendChild(opt);
+        uploadFolderSelect.value = initialDest;
+      }
+    }
     const folderSelectTileLabel = document.getElementById(
       "folderSelectTileLabel",
     );
-    if (folderSelectTileLabel)
+    if (folderSelectTileLabel && uploadFolderSelect)
       folderSelectTileLabel.textContent = uploadFolderSelect.value
         ? `/${uploadFolderSelect.value}`
         : "Selecciona carpeta";
@@ -1946,7 +1959,7 @@ class PCUMedia {
     const uploadConfirmBtn = document.getElementById("uploadConfirmBtn");
     if (uploadConfirmBtn) {
       uploadConfirmBtn.disabled = true;
-      uploadConfirmBtn.textContent = "Subir";
+      uploadConfirmBtn.textContent = "Subir Archivos";
     }
   }
 
@@ -1954,6 +1967,7 @@ class PCUMedia {
     const modal = document.getElementById("uploadModal");
     modal.classList.remove("active");
     document.body.style.overflow = "";
+    this.closeActionMenu();
     this.setPendingUploadFiles([]);
 
     const uploadFileInput = document.getElementById("uploadFileInput");
@@ -1968,7 +1982,7 @@ class PCUMedia {
     const modal = document.getElementById("folderModal");
     if (!modal) return;
     modal.classList.add("active");
-    document.body.style.overflow = "hidden";
+    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
 
     this.populateFolderParentSelect();
     const parent = document.getElementById("folderParentSelect");
@@ -1993,7 +2007,7 @@ class PCUMedia {
     if (!modal) return;
     this.fileToMove = file;
     modal.classList.add("active");
-    document.body.style.overflow = "hidden";
+    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
     this.populateMoveFolderSelect();
     const select = document.getElementById("moveFolderSelect");
     if (select) {
@@ -2244,9 +2258,6 @@ class PCUMedia {
     row.addEventListener("touchstart", startLP, { passive: false });
     row.addEventListener("touchend", cancelLP);
     row.addEventListener("touchmove", cancelLP);
-
-    // Siempre cargar metadatos (conteos) y contenido, aunque el cuerpo esté oculto si está colapsado
-    this.renderHomeFolderBody(node, filesEl, childrenEl, meta, depth);
 
     return wrap;
   }

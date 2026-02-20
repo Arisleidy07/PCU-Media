@@ -609,25 +609,47 @@ app.post("/folders", async (req, res) => {
   }
 });
 
-// Obtener estructura de carpetas
+// Obtener estructura de carpetas (árbol jerárquico)
 app.get("/folders", async (req, res) => {
   try {
     const snapshot = await db.collection("folders").get();
-    const folders = [];
+    const flat = [];
 
     snapshot.forEach((doc) => {
       const data = doc.data();
-      folders.push({
+      flat.push({
         name: data.name,
         path: data.path,
+        parent: data.parent || "",
         children: [],
       });
     });
 
+    // Ordenar por profundidad para construir el árbol correctamente
+    flat.sort((a, b) => {
+      const da = a.path.split("/").length;
+      const db2 = b.path.split("/").length;
+      return da - db2;
+    });
+
+    // Construir árbol
+    const map = {};
+    const roots = [];
+    for (const folder of flat) {
+      map[folder.path] = folder;
+    }
+    for (const folder of flat) {
+      if (folder.parent && map[folder.parent]) {
+        map[folder.parent].children.push(folder);
+      } else {
+        roots.push(folder);
+      }
+    }
+
     res.json({
       root: "",
       name: "PCU Media",
-      children: folders,
+      children: roots,
     });
   } catch (error) {
     console.error("Error getting folders:", error);
