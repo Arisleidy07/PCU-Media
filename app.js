@@ -2207,26 +2207,18 @@ class PCUMedia {
     const pad = 12 + depth * 18;
 
     wrap.innerHTML = `
-      <button type="button" class="home-folder__row" aria-expanded="${!isCollapsed}" style="padding-left: ${pad}px">
+      <button type="button" class="home-folder__row" style="padding-left: ${pad}px">
         <span class="home-folder__icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
           </svg>
         </span>
         <span class="home-folder__name">${this.escapeHtml(node.name)}</span>
-        <span class="home-folder__meta"></span>
+        <svg class="home-folder__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="margin-left:auto;opacity:0.5;flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
       </button>
-      <div class="home-folder__body" style="display: ${isCollapsed ? "none" : "block"}">
-        <div class="home-folder__children"></div>
-        <div class="home-folder__files"></div>
-      </div>
     `;
 
     const row = wrap.querySelector(".home-folder__row");
-    const body = wrap.querySelector(".home-folder__body");
-    const meta = wrap.querySelector(".home-folder__meta");
-    const childrenEl = wrap.querySelector(".home-folder__children");
-    const filesEl = wrap.querySelector(".home-folder__files");
 
     row.addEventListener("click", async (e) => {
       // Un click: navegar directamente a la carpeta
