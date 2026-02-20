@@ -955,12 +955,14 @@ body {
 }
 
 .gallery-item {
+  position: relative;
   aspect-ratio: 16/9;
   border: 1px solid var(--border);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .gallery-item:hover {
