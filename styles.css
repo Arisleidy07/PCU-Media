@@ -2212,13 +2212,10 @@ body {
     opacity: 1;
   }
 
-  /* Media container sizing - adaptive to content */
+  /* Media container sizing - starts at top, no black borders */
   #previewContainer {
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* Let content determine height */
+    /* No flex centering - let media start at top */
   }
 
   #previewContainer img,
@@ -2226,8 +2223,8 @@ body {
     width: 100%;
     height: auto;
     max-height: 70dvh;
-    object-fit: contain;
-    object-position: center;
+    object-fit: cover;
+    object-position: top;
     display: block;
   }
 
