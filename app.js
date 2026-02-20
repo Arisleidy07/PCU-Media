@@ -2542,6 +2542,28 @@ class PCUMedia {
     host.appendChild(list);
   }
 
+  // Esperar a que Firebase esté listo (máx 5 segundos)
+  _waitForFirebase() {
+    return new Promise((resolve) => {
+      if (window.fbReady !== undefined) {
+        resolve(!!window.fbReady);
+        return;
+      }
+      var timeout = setTimeout(function () {
+        resolve(false);
+      }, 5000);
+      window.addEventListener(
+        "firebase-ready",
+        function handler() {
+          clearTimeout(timeout);
+          window.removeEventListener("firebase-ready", handler);
+          resolve(!!window.fbReady);
+        },
+        { once: true },
+      );
+    });
+  }
+
   async confirmUpload() {
     const uploadFolderSelect = document.getElementById("uploadFolderSelect");
     let dest = (uploadFolderSelect && uploadFolderSelect.value) || "";
@@ -2559,17 +2581,11 @@ class PCUMedia {
     // Cerrar modal de inmediato
     this.closeUploadModal();
 
-    // Navegar a la carpeta destino
-    if ((dest || "") !== (this.currentPath || "")) {
-      this.currentPath = dest || "";
-      this.updateBreadcrumbs();
-      this.renderFolderTree();
-      this.updateFolderToolbar();
-    }
-
     try {
+      // Esperar a que Firebase esté listo
+      var fbAvailable = await this._waitForFirebase();
       var useClientUpload = !!(
-        window.fbReady &&
+        fbAvailable &&
         window.fbUploadBytes &&
         window.fbStorage &&
         window.fbRef &&
@@ -2577,7 +2593,7 @@ class PCUMedia {
       );
 
       if (useClientUpload) {
-        // RUTA A: Subida directa a Firebase Storage desde el navegador
+        // RUTA A: Subida directa a Firebase Storage desde el navegador (sin límite de tamaño)
         for (var i = 0; i < fileCount; i++) {
           var f = filesToUpload[i];
           var parts = this.splitFileName(f.name);
@@ -2592,6 +2608,7 @@ class PCUMedia {
           });
           var downloadURL = await window.fbGetDownloadURL(snapshot.ref);
 
+          // Registrar en Firestore via API
           var regRes = await fetch("/api/register-file", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2608,13 +2625,16 @@ class PCUMedia {
             var regData = await regRes.json().catch(function () {
               return {};
             });
-            throw new Error(regData.error || "Error registrando archivo");
+            throw new Error(
+              regData.error ||
+                "Error registrando archivo (" + regRes.status + ")",
+            );
           }
 
           this.setFileMeta(filePath, { description: descsToUpload[i] || "" });
         }
       } else {
-        // RUTA B: Fallback - subir via API backend
+        // RUTA B: Fallback - subir via API backend (límite 4.5MB por Vercel)
         var form = new FormData();
         for (var j = 0; j < fileCount; j++) {
           var ff = filesToUpload[j];
@@ -2640,10 +2660,10 @@ class PCUMedia {
         }
       }
 
-      // Refrescar galeria con los archivos reales
+      // Navegar a la carpeta destino y recargar archivos
       await this.refreshFolders();
       this.homeFolderFiles.delete(dest || "");
-      await this.loadFiles();
+      await this.navigateToFolder(dest || "");
 
       this.showToast({
         title: "Listo",
@@ -2656,8 +2676,9 @@ class PCUMedia {
         message: e && e.message ? e.message : "Error subiendo archivos",
         variant: "error",
       });
+      // Refrescar de todos modos
       try {
-        await this.loadFiles();
+        await this.navigateToFolder(dest || "");
       } catch (ignored) {}
     }
   }

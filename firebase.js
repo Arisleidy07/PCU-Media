@@ -31,16 +31,18 @@ try {
   firebaseApp = initializeApp(firebaseConfig);
   storage = getStorage(firebaseApp);
 
-  // Exponer funciones de upload en window para que app.js pueda usarlas
   window.fbStorage = storage;
   window.fbRef = ref;
   window.fbUploadBytes = uploadBytes;
   window.fbGetDownloadURL = getDownloadURL;
   window.fbReady = true;
-  console.log("Firebase Storage inicializado correctamente");
+
+  // Notificar a app.js que Firebase está listo
+  window.dispatchEvent(new CustomEvent("firebase-ready"));
 } catch (e) {
   console.error("Error inicializando Firebase:", e);
   window.fbReady = false;
+  window.dispatchEvent(new CustomEvent("firebase-ready"));
 }
 
 try {
