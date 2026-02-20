@@ -1053,20 +1053,19 @@ body {
   right: 0;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.72),
-    rgba(0, 0, 0, 0.12),
+    rgba(0, 0, 0, 0.82),
+    rgba(0, 0, 0, 0.3),
     transparent
   );
   color: white;
-  padding: 12px;
+  padding: 20px 10px 8px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   opacity: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: var(--transition);
-}
-
-.gallery-item:hover .file-name {
-  opacity: 1;
 }
 
 /* Empty State */
@@ -2141,36 +2140,37 @@ body {
     gap: 10px;
   }
 
-  /* Preview: full-screen bottom sheet on mobile */
+  /* Preview: true full-screen on mobile */
   .preview-modal.active {
-    align-items: flex-end;
+    align-items: stretch;
   }
 
   .preview-content {
     flex-direction: column;
     width: 100%;
     max-width: 100vw;
-    height: 92dvh;
-    max-height: 92dvh;
-    border-radius: 20px 20px 0 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
     overflow: hidden;
   }
 
   .preview-media {
     min-width: auto;
-    min-height: 200px;
-    max-height: 50dvh;
-    flex: 0 0 auto;
+    min-height: 0;
+    flex: 1 1 0;
+    overflow: hidden;
   }
 
   .preview-info {
     width: 100%;
     border-left: none;
     border-top: 1px solid var(--border);
-    flex: 1;
+    flex: 0 0 auto;
+    max-height: 45dvh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 16px;
+    padding: 14px 16px;
     padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 
@@ -2180,6 +2180,9 @@ body {
     top: 12px;
     width: 44px;
     height: 44px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   /* Item action buttons - bigger touch targets */

@@ -1400,7 +1400,7 @@ class PCUMedia {
     if (file.type === "video") {
       mediaElement = `<video src="${file.url}" autoplay muted loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
       typeIndicator = `<div class="video-indicator"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Video</div>`;
-      fileNameHtml = "";
+      fileNameHtml = `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
     } else if (file.type === "image") {
       mediaElement = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center" loading="lazy">`;
       typeIndicator = "";
@@ -1812,19 +1812,9 @@ class PCUMedia {
     const modal = document.getElementById("previewModal");
     const container = document.getElementById("previewContainer");
     const fileName = document.getElementById("previewFileName");
-    const filePath = document.getElementById("previewFilePath");
-    const fileDate = document.getElementById("previewFileDate");
-    const fileSize = document.getElementById("previewFileSize");
 
     // Set file info
-    fileName.textContent = file.name;
-    filePath.textContent = this.currentPath
-      ? `${this.currentPath}/${file.name}`
-      : file.name;
-    fileDate.textContent = (file.date || new Date()).toLocaleDateString(
-      "es-ES",
-    );
-    fileSize.textContent = this.formatFileSize(file.size);
+    if (fileName) fileName.textContent = file.name;
 
     // Set media content
     if (file.type === "video") {
