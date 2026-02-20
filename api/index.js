@@ -244,20 +244,34 @@ app.get("/files", async (req, res) => {
       query = query.where("folder", "==", "");
     }
 
-    const snapshot = await query.orderBy("uploadDate", "desc").get();
+    const snapshot = await query.get();
     const files = [];
 
     snapshot.forEach((doc) => {
       const data = doc.data();
+      // Convertir Firestore Timestamp a ISO string
+      let modified = null;
+      if (data.uploadDate && data.uploadDate.toDate) {
+        modified = data.uploadDate.toDate().toISOString();
+      } else if (data.uploadDate) {
+        modified = data.uploadDate;
+      }
       files.push({
         id: doc.id,
         name: data.name,
         path: data.path,
         url: data.url,
         size: data.size,
-        modified: data.uploadDate,
+        modified: modified,
         type: data.type,
       });
+    });
+
+    // Ordenar por fecha descendente en memoria (evita necesitar composite index)
+    files.sort((a, b) => {
+      if (!a.modified) return 1;
+      if (!b.modified) return -1;
+      return new Date(b.modified) - new Date(a.modified);
     });
 
     res.json({

@@ -2548,37 +2548,76 @@ class PCUMedia {
     }
 
     try {
-      for (var i = 0; i < fileCount; i++) {
-        var f = filesToUpload[i];
-        var parts = this.splitFileName(f.name);
-        var base = String(namesToUpload[i] || "").trim() || parts.base;
-        var newName = base + parts.ext;
-        var fileName = Date.now() + "_" + newName;
-        var filePath = dest ? dest + "/" + fileName : fileName;
+      var useClientUpload = !!(
+        window.fbReady &&
+        window.fbUploadBytes &&
+        window.fbStorage &&
+        window.fbRef &&
+        window.fbGetDownloadURL
+      );
 
-        // Subir directo a Firebase Storage desde el navegador
-        var sRef = window.fbRef(window.fbStorage, filePath);
-        var snapshot = await window.fbUploadBytes(sRef, f, {
-          contentType: f.type || "application/octet-stream",
-        });
-        var downloadURL = await window.fbGetDownloadURL(snapshot.ref);
+      if (useClientUpload) {
+        // RUTA A: Subida directa a Firebase Storage desde el navegador
+        for (var i = 0; i < fileCount; i++) {
+          var f = filesToUpload[i];
+          var parts = this.splitFileName(f.name);
+          var base = String(namesToUpload[i] || "").trim() || parts.base;
+          var newName = base + parts.ext;
+          var fileName = Date.now() + "_" + newName;
+          var filePath = dest ? dest + "/" + fileName : fileName;
 
-        // Registrar metadata en Firestore via API
-        await fetch("/api/register-file", {
+          var sRef = window.fbRef(window.fbStorage, filePath);
+          var snapshot = await window.fbUploadBytes(sRef, f, {
+            contentType: f.type || "application/octet-stream",
+          });
+          var downloadURL = await window.fbGetDownloadURL(snapshot.ref);
+
+          var regRes = await fetch("/api/register-file", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: newName,
+              path: filePath,
+              url: downloadURL,
+              size: f.size,
+              mimetype: f.type || "application/octet-stream",
+              folder: dest,
+            }),
+          });
+          if (!regRes.ok) {
+            var regData = await regRes.json().catch(function () {
+              return {};
+            });
+            throw new Error(regData.error || "Error registrando archivo");
+          }
+
+          this.setFileMeta(filePath, { description: descsToUpload[i] || "" });
+        }
+      } else {
+        // RUTA B: Fallback - subir via API backend
+        var form = new FormData();
+        for (var j = 0; j < fileCount; j++) {
+          var ff = filesToUpload[j];
+          var pp = this.splitFileName(ff.name);
+          var bb = String(namesToUpload[j] || "").trim() || pp.base;
+          var nn = bb + pp.ext;
+          form.append("files", ff, nn);
+        }
+        var qp = new URLSearchParams();
+        qp.set("dest", dest);
+        var uploadRes = await fetch("/api/upload?" + qp.toString(), {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: newName,
-            path: filePath,
-            url: downloadURL,
-            size: f.size,
-            mimetype: f.type || "application/octet-stream",
-            folder: dest,
-          }),
+          body: form,
         });
-
-        // Guardar descripcion local
-        this.setFileMeta(filePath, { description: descsToUpload[i] || "" });
+        var uploadData = await uploadRes.json().catch(function () {
+          return {};
+        });
+        if (!uploadRes.ok) {
+          throw new Error(
+            uploadData.error ||
+              "Error subiendo archivos (" + uploadRes.status + ")",
+          );
+        }
       }
 
       // Refrescar galeria con los archivos reales
@@ -2597,7 +2636,9 @@ class PCUMedia {
         message: e && e.message ? e.message : "Error subiendo archivos",
         variant: "error",
       });
-      await this.loadFiles();
+      try {
+        await this.loadFiles();
+      } catch (ignored) {}
     }
   }
 
