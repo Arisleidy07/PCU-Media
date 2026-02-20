@@ -2144,39 +2144,31 @@ body {
     gap: 10px;
   }
 
-  /* Preview: Amazon-style on mobile - entire modal scrolls */
+  /* Preview: Amazon-style on mobile - single flow, no separate containers */
   .preview-modal.active {
-    align-items: flex-start;
+    display: block;
+    padding: 0;
   }
 
   .preview-content {
-    flex-direction: column;
     width: 100%;
-    max-width: 100vw;
-    min-height: 100dvh;
-    border-radius: 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
     background: var(--bg);
+    /* No flex, no fixed height - natural document flow */
   }
 
   .preview-media {
     width: 100%;
     background: #000;
     cursor: pointer;
-    position: relative;
-    flex: 0 0 auto;
-    /* No fixed height - let content determine size */
+    /* Part of normal flow, not fixed or separate */
   }
 
   .preview-info {
     width: 100%;
-    border-left: none;
     border-top: 1px solid var(--border);
-    flex: 1;
     padding: 16px;
     padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    /* No overflow - parent handles scrolling */
+    /* Normal flow element */
   }
 
   .preview-close {
@@ -2212,25 +2204,25 @@ body {
     opacity: 1;
   }
 
-  /* Media container sizing - starts at top, no black borders */
+  /* Media sizing - natural flow, no max-height restrictions */
   #previewContainer {
     width: 100%;
-    /* No flex centering - let media start at top */
   }
 
   #previewContainer img,
   #previewContainer video {
     width: 100%;
     height: auto;
-    max-height: 70dvh;
     object-fit: cover;
     object-position: top;
     display: block;
+    /* No max-height - let content determine natural size */
   }
 
   #previewContainer iframe {
     width: 100%;
-    height: 70dvh;
+    height: auto;
+    min-height: 300px;
     border: none;
   }
 
