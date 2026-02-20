@@ -2037,50 +2037,220 @@ body {
   white-space: nowrap;
 }
 
-/* Responsive Design */
+/* =============================================
+   MOBILE / RESPONSIVE DESIGN
+   ============================================= */
+
+/* Allow body to scroll on mobile */
+@media (max-width: 980px) {
+  body {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #app {
+    height: auto;
+    min-height: 100dvh;
+  }
+  .main-content {
+    overflow: visible;
+  }
+  .gallery-container {
+    overflow: visible;
+  }
+}
+
 @media (max-width: 768px) {
   .gallery-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 10px;
+  }
+
+  /* Preview: full-screen bottom sheet on mobile */
+  .preview-modal.active {
+    align-items: flex-end;
   }
 
   .preview-content {
     flex-direction: column;
     width: 100%;
     max-width: 100vw;
-    max-height: 92vh;
-    border-radius: 18px 18px 0 0;
-  }
-
-  .preview-modal.active {
-    align-items: flex-end;
+    height: 92dvh;
+    max-height: 92dvh;
+    border-radius: 20px 20px 0 0;
+    overflow: hidden;
   }
 
   .preview-media {
     min-width: auto;
-    min-height: 220px;
+    min-height: 200px;
+    max-height: 50dvh;
+    flex: 0 0 auto;
   }
 
   .preview-info {
     width: 100%;
     border-left: none;
     border-top: 1px solid var(--border);
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 
-  /* Keep close on right on mobile to avoid overlapping start of title area */
   .preview-close {
     left: auto;
     right: 12px;
+    top: 12px;
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Item action buttons - bigger touch targets */
+  .item-actions__btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  /* Context menus - full width on mobile */
+  .item-menu {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: env(safe-area-inset-bottom, 12px) !important;
+    top: auto !important;
+    width: auto !important;
+    min-width: auto !important;
+    border-radius: 16px;
+    z-index: 2000;
+  }
+
+  .item-menu__item {
+    padding: 14px 16px;
+    font-size: 15px;
+  }
+
+  /* Header compact */
+  .header {
+    padding: 10px 12px;
+  }
+
+  .breadcrumbs {
+    font-size: 13px;
+    max-width: 160px;
+  }
+
+  /* Action bar labels hidden on small screens */
+  .action-bar .action-label {
+    display: none !important;
+  }
+
+  .action-bar .fab-btn {
+    padding: 0 10px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Upload modal - full screen with safe area */
+  .upload-dialog {
+    padding: 20px 16px;
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .upload-dialog h3 {
+    font-size: 20px;
+  }
+
+  /* Selected files list - single column on mobile */
+  .selected-files-list {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-file-item {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-file-thumbwrap {
+    min-height: 160px;
+  }
+
+  /* Folder toolbar */
+  .folder-toolbar {
+    margin: 4px 0 10px;
+    padding: 6px 10px;
+  }
+
+  /* Home folder name smaller */
+  .home-folder__name {
+    font-size: 16px;
+  }
+
+  /* Gallery container padding */
+  .gallery-container {
+    padding: 12px;
+  }
+
+  /* Toast on mobile - full width bottom */
+  .toast-host {
+    left: 12px;
+    right: 12px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    max-width: 100%;
   }
 }
 
 @media (max-width: 480px) {
   .header {
-    padding: 14px 14px;
+    padding: 10px 10px;
   }
 
   .gallery-container {
+    padding: 8px;
+  }
+
+  .gallery-grid {
+    gap: 8px;
+  }
+
+  /* Folder dialog full width */
+  .folder-dialog {
+    width: calc(100vw - 16px);
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  /* Home section grid 2 cols */
+  .home-files-grid,
+  .home-section__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  /* Gallery item filename smaller */
+  .gallery-item .file-name {
+    font-size: 11px;
+    padding: 8px;
+  }
+
+  /* Bigger tap targets for tree items */
+  .tree-item {
+    padding: 12px;
+    margin-bottom: 2px;
+  }
+
+  /* Upload confirm button full width */
+  .upload-actions {
+    flex-direction: column-reverse;
+  }
+  .upload-cancel-btn,
+  .upload-confirm-btn {
+    width: 100%;
     padding: 14px;
+    font-size: 15px;
+    text-align: center;
+    justify-content: center;
   }
 }
 

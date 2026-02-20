@@ -45,15 +45,15 @@ body {
 .gallery-grid,
 .home-files-grid,
 .home-section__grid {
-  gap: 24px;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 }
 
 @media (min-width: 1600px) {
   .gallery-grid,
   .home-files-grid,
   .home-section__grid {
-    grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
   }
 }
 
@@ -61,7 +61,17 @@ body {
   .gallery-grid,
   .home-files-grid,
   .home-section__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .gallery-grid,
+  .home-files-grid,
+  .home-section__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
 }
 
