@@ -228,6 +228,8 @@ body {
   gap: 8px;
   margin-bottom: 4px;
   color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Ensure left cluster grows so the menu button stays to the right */
@@ -327,10 +329,12 @@ body {
 
 /* Hamburger icon button */
 .icon-btn {
-  width: 38px;
-  height: 38px;
-  display: inline-grid;
-  place-items: center;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   background: linear-gradient(
@@ -342,6 +346,7 @@ body {
   box-shadow: 0 4px 16px rgba(2, 6, 23, 0.16);
   cursor: pointer;
   transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
 .icon-btn:hover {
   transform: translateY(-1px);
@@ -350,6 +355,10 @@ body {
 .icon-btn:focus-visible {
   outline: 2px solid rgba(99, 102, 241, 0.6);
   outline-offset: 2px;
+}
+.icon-btn svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 /* Header Home button */
@@ -362,29 +371,6 @@ body {
 }
 .header-left .tab-btn:hover {
   background: rgba(255, 255, 255, 0.08);
-}
-
-.icon-btn {
-  width: 38px;
-  height: 38px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: linear-gradient(
-    180deg,
-    rgba(30, 41, 59, 0.4),
-    rgba(15, 23, 42, 0.4)
-  );
-  color: var(--text);
-  box-shadow: 0 4px 16px rgba(2, 6, 23, 0.16);
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.icon-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
 }
 
 .breadcrumbs {
@@ -792,6 +778,8 @@ body {
   align-items: center;
   gap: 12px;
   transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .home-folder__row:hover {
@@ -967,15 +955,12 @@ body {
 }
 
 .gallery-item {
-  background: rgba(255, 255, 255, 0.04);
+  aspect-ratio: 16/9;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   cursor: pointer;
-  transition: var(--transition);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  aspect-ratio: 1;
 }
 
 .gallery-item:hover {

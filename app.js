@@ -1140,23 +1140,29 @@ class PCUMedia {
       this.openFolderMenu(node, div);
     });
 
-    // Tap prolongado en móvil para mostrar menú
+    // Tap prolongado en móvil para mostrar menú - passive so click still fires
     let lpTimer = null;
+    let lpFired = false;
     const startLP = (e) => {
-      try {
-        if (e && e.preventDefault) e.preventDefault();
-      } catch {}
+      lpFired = false;
       lpTimer = window.setTimeout(() => {
+        lpFired = true;
         this.openFolderMenu(node, menuBtn || div);
-      }, 500);
+      }, 600);
     };
     const cancelLP = () => {
       if (lpTimer) window.clearTimeout(lpTimer);
       lpTimer = null;
     };
-    div.addEventListener("touchstart", startLP, { passive: false });
-    div.addEventListener("touchend", cancelLP);
-    div.addEventListener("touchmove", cancelLP);
+    div.addEventListener("touchstart", startLP, { passive: true });
+    div.addEventListener("touchend", (e) => {
+      cancelLP();
+      if (lpFired) {
+        e.preventDefault();
+        lpFired = false;
+      }
+    });
+    div.addEventListener("touchmove", cancelLP, { passive: true });
 
     if (hasChildren) {
       const childrenContainer = document.createElement("div");
@@ -1430,24 +1436,31 @@ class PCUMedia {
       this.openItemMenu(file, anchor);
     });
 
-    // Long press (mobile)
+    // Long press (mobile) - NO preventDefault so click still fires for short taps
     let lpTimer = null;
+    let lpFired = false;
     const startLP = (e) => {
-      try {
-        if (e && e.preventDefault) e.preventDefault();
-      } catch {}
+      lpFired = false;
       lpTimer = window.setTimeout(() => {
+        lpFired = true;
         const anchor = div.querySelector(".item-actions__btn") || div;
         this.openItemMenu(file, anchor);
-      }, 500);
+      }, 600);
     };
     const cancelLP = () => {
       if (lpTimer) window.clearTimeout(lpTimer);
       lpTimer = null;
     };
-    div.addEventListener("touchstart", startLP, { passive: false });
-    div.addEventListener("touchend", cancelLP);
-    div.addEventListener("touchmove", cancelLP);
+    div.addEventListener("touchstart", startLP, { passive: true });
+    div.addEventListener("touchend", (e) => {
+      cancelLP();
+      // If long press fired, block the click
+      if (lpFired) {
+        e.preventDefault();
+        lpFired = false;
+      }
+    });
+    div.addEventListener("touchmove", cancelLP, { passive: true });
 
     return div;
   }
@@ -2233,23 +2246,29 @@ class PCUMedia {
       this.openFolderMenu(node, row);
     });
 
-    // Tap prolongado en móvil para abrir menú contextual
+    // Tap prolongado en móvil para abrir menú contextual - passive so click still fires
     let lpTimer = null;
+    let lpFired = false;
     const startLP = (e) => {
-      try {
-        if (e && e.preventDefault) e.preventDefault();
-      } catch {}
+      lpFired = false;
       lpTimer = window.setTimeout(() => {
+        lpFired = true;
         this.openFolderMenu(node, row);
-      }, 550);
+      }, 600);
     };
     const cancelLP = () => {
       if (lpTimer) window.clearTimeout(lpTimer);
       lpTimer = null;
     };
-    row.addEventListener("touchstart", startLP, { passive: false });
-    row.addEventListener("touchend", cancelLP);
-    row.addEventListener("touchmove", cancelLP);
+    row.addEventListener("touchstart", startLP, { passive: true });
+    row.addEventListener("touchend", (e) => {
+      cancelLP();
+      if (lpFired) {
+        e.preventDefault();
+        lpFired = false;
+      }
+    });
+    row.addEventListener("touchmove", cancelLP, { passive: true });
 
     return wrap;
   }
