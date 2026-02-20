@@ -1923,18 +1923,21 @@ class PCUMedia {
     closeBtn.style.cssText = `
       position: fixed;
       top: env(safe-area-inset-top, 20px);
-      right: 20px;
-      width: 48px;
-      height: 48px;
+      left: 20px;
+      width: 32px;
+      height: 32px;
       background: rgba(255,255,255,0.2);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: none;
       border-radius: 50%;
       color: white;
-      font-size: 24px;
+      font-size: 18px;
       cursor: pointer;
       z-index: 2001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     `;
 
     // Add click to close
