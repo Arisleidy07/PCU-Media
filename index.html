@@ -156,6 +156,7 @@
       <div id="uploadModal" class="upload-modal">
         <div class="upload-overlay" onclick="closeUploadModal()"></div>
         <div class="upload-dialog">
+          <!-- Fixed header - always visible -->
           <div class="upload-header">
             <h3>Subir Archivos</h3>
             <div class="upload-quick-actions">
@@ -221,39 +222,52 @@
               </button>
             </div>
           </div>
-          <div class="upload-top-row">
-            <div id="uploadPreviewArea" class="upload-preview-area">
-              <div class="upload-drop-inner">
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                >
-                  <path d="M12 16V3" />
-                  <path d="M7 8l5-5 5 5" />
-                  <rect x="3" y="16" width="18" height="5" rx="2" ry="2"></rect>
-                </svg>
-                <p>Arrastra archivos o haz clic</p>
-              </div>
-            </div>
-            <div id="folderSelectTile" class="folder-select-tile">
-              <div class="fst-content">
-                <div class="fst-title">Seleccionar carpeta de destino</div>
-                <div id="folderSelectTileLabel" class="fst-label">
-                  Selecciona carpeta
+
+          <!-- Scrollable body -->
+          <div class="upload-dialog-body">
+            <div class="upload-top-row">
+              <div id="uploadPreviewArea" class="upload-preview-area">
+                <div class="upload-drop-inner">
+                  <svg
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
+                    <path d="M12 16V3" />
+                    <path d="M7 8l5-5 5 5" />
+                    <rect
+                      x="3"
+                      y="16"
+                      width="18"
+                      height="5"
+                      rx="2"
+                      ry="2"
+                    ></rect>
+                  </svg>
+                  <p>Arrastra archivos o haz clic</p>
                 </div>
               </div>
-              <select
-                id="uploadFolderSelect"
-                class="upload-folder-select-native"
-              ></select>
+              <div id="folderSelectTile" class="folder-select-tile">
+                <div class="fst-content">
+                  <div class="fst-title">Seleccionar carpeta de destino</div>
+                  <div id="folderSelectTileLabel" class="fst-label">
+                    Selecciona carpeta
+                  </div>
+                </div>
+                <select
+                  id="uploadFolderSelect"
+                  class="upload-folder-select-native"
+                ></select>
+              </div>
             </div>
+            <h4 class="upload-list-title">Archivos seleccionados</h4>
+            <div id="uploadFileList" class="selected-files-list-host"></div>
           </div>
-          <h4 class="upload-list-title">Archivos seleccionados</h4>
-          <div id="uploadFileList" class="selected-files-list-host"></div>
+
+          <!-- Hidden inputs -->
           <input
             type="file"
             id="uploadFileInput"
@@ -276,6 +290,8 @@
             accept="image/*"
             style="display: none"
           />
+
+          <!-- Fixed footer actions -->
           <div class="upload-actions">
             <button class="upload-cancel-btn" onclick="closeUploadModal()">
               Cancelar
