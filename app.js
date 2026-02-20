@@ -1020,6 +1020,10 @@ class PCUMedia {
       left.addEventListener("click", (e) => {
         e.stopPropagation();
         this.navigateToFolder(node.path);
+        // Cerrar sidebar en móvil
+        if (window.innerWidth < 980) {
+          this.toggleSidebar(false);
+        }
       });
     }
 
@@ -1172,9 +1176,13 @@ class PCUMedia {
   async navigateToFolder(relPath) {
     this.currentPath = relPath || "";
     this.updateBreadcrumbs();
-    await this.loadFiles();
     this.renderFolderTree();
     this.updateFolderToolbar();
+    // Cerrar sidebar en móvil al navegar
+    if (window.innerWidth < 980) {
+      this.toggleSidebar(false);
+    }
+    await this.loadFiles();
   }
 
   updateBreadcrumbs() {
@@ -2206,19 +2214,10 @@ class PCUMedia {
     const childrenEl = wrap.querySelector(".home-folder__children");
     const filesEl = wrap.querySelector(".home-folder__files");
 
-    row.addEventListener("click", async () => {
-      // En Inicio: NO entrar; solo expandir/colapsar acordeón
-      const collapsed = this.homeCollapsed.has(node.path);
-      if (collapsed) this.homeCollapsed.delete(node.path);
-      else this.homeCollapsed.add(node.path);
-
-      const nowCollapsed = this.homeCollapsed.has(node.path);
-      body.style.display = nowCollapsed ? "none" : "block";
-      row.setAttribute("aria-expanded", String(!nowCollapsed));
-
-      if (!nowCollapsed) {
-        await this.renderHomeFolderBody(node, filesEl, childrenEl, meta, depth);
-      }
+    row.addEventListener("click", async (e) => {
+      // Un click: navegar directamente a la carpeta
+      e.stopPropagation();
+      await this.navigateToFolder(node.path);
     });
 
     // Abrir menú contextual con clic derecho en desktop
@@ -2542,6 +2541,53 @@ class PCUMedia {
     host.appendChild(list);
   }
 
+  // Mostrar tarjetas de carga en la galería mientras se suben archivos
+  _showUploadingState(count, dest) {
+    const galleryGrid = document.getElementById("galleryGrid");
+    const homeAccordion = document.getElementById("homeAccordion");
+    const emptyState = document.getElementById("emptyState");
+
+    if (!galleryGrid) return;
+
+    // Mostrar galería (ocultar acordeón home y empty state)
+    if (homeAccordion) homeAccordion.style.display = "none";
+    if (emptyState) emptyState.style.display = "none";
+    galleryGrid.style.display = "block";
+
+    // Crear sección de carga
+    const section = document.createElement("div");
+    section.className = "home-section upload-loading-section";
+    section.id = "uploadLoadingSection";
+
+    const header = document.createElement("div");
+    header.className = "home-section__header is-static";
+    header.innerHTML = `
+      <span class="upload-spinner" aria-hidden="true"></span>
+      <span class="home-section__title">Subiendo ${count} archivo(s)...</span>
+    `;
+
+    const body = document.createElement("div");
+    body.className = "home-section__body";
+    body.style.display = "block";
+
+    const grid = document.createElement("div");
+    grid.className = "home-section__grid";
+
+    for (var k = 0; k < count; k++) {
+      const card = document.createElement("div");
+      card.className = "gallery-item upload-placeholder";
+      card.innerHTML = `<div class="upload-placeholder__shimmer"></div><div class="upload-placeholder__icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4"><path d="M12 16V3"/><path d="M7 8l5-5 5 5"/><rect x="3" y="16" width="18" height="5" rx="2"/></svg></div>`;
+      grid.appendChild(card);
+    }
+
+    body.appendChild(grid);
+    section.appendChild(header);
+    section.appendChild(body);
+
+    galleryGrid.innerHTML = "";
+    galleryGrid.appendChild(section);
+  }
+
   // Esperar a que Firebase esté listo (máx 5 segundos)
   _waitForFirebase() {
     return new Promise((resolve) => {
@@ -2580,6 +2626,16 @@ class PCUMedia {
 
     // Cerrar modal de inmediato
     this.closeUploadModal();
+
+    // Navegar a la carpeta destino y mostrar estado de carga
+    if ((dest || "") !== (this.currentPath || "")) {
+      this.currentPath = dest || "";
+      this.updateBreadcrumbs();
+      this.renderFolderTree();
+      this.updateFolderToolbar();
+      if (window.innerWidth < 980) this.toggleSidebar(false);
+    }
+    this._showUploadingState(fileCount, dest);
 
     try {
       // Esperar a que Firebase esté listo
