@@ -1441,6 +1441,38 @@ class PCUMedia {
     return div;
   }
 
+  // Posicionar un menú contextual de forma inteligente (mobile-safe)
+  _positionMenu(menu, anchorEl) {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      // En móvil: fijo en la parte inferior, ancho completo
+      menu.style.position = "fixed";
+      menu.style.left = "12px";
+      menu.style.right = "12px";
+      menu.style.bottom = "12px";
+      menu.style.top = "auto";
+      menu.style.width = "auto";
+    } else {
+      const r = anchorEl.getBoundingClientRect();
+      const menuW = 200;
+      const menuH = 160;
+      let top = r.bottom + 8;
+      let left = r.right - menuW;
+      // Clamp to viewport
+      if (left < 8) left = 8;
+      if (left + menuW > window.innerWidth - 8)
+        left = window.innerWidth - menuW - 8;
+      if (top + menuH > window.innerHeight - 8) top = r.top - menuH - 8;
+      if (top < 8) top = 8;
+      menu.style.position = "fixed";
+      menu.style.top = top + "px";
+      menu.style.left = left + "px";
+      menu.style.right = "auto";
+      menu.style.bottom = "auto";
+      menu.style.width = menuW + "px";
+    }
+  }
+
   // Menú contextual por item (renombrar, mover, eliminar)
   openItemMenu(file, anchorEl) {
     this.closeActionMenu();
@@ -1452,14 +1484,7 @@ class PCUMedia {
       <button type="button" class="item-menu__item item-menu__item--danger" data-action="delete">Eliminar</button>
     `;
     document.body.appendChild(menu);
-
-    // Posicionar cerca del botón
-    const r = anchorEl.getBoundingClientRect();
-    const top = Math.round(window.scrollY + r.bottom + 8);
-    const left = Math.round(window.scrollX + r.right - 160);
-    menu.style.position = "absolute";
-    menu.style.top = top + "px";
-    menu.style.left = left + "px";
+    this._positionMenu(menu, anchorEl);
 
     menu.addEventListener("click", async (e) => {
       const t = e.target;
@@ -1495,12 +1520,7 @@ class PCUMedia {
     `;
     document.body.appendChild(menu);
 
-    const r = anchorEl.getBoundingClientRect();
-    const top = Math.round(window.scrollY + r.top);
-    const left = Math.round(window.scrollX + r.right + 8);
-    menu.style.position = "absolute";
-    menu.style.top = top + "px";
-    menu.style.left = left + "px";
+    this._positionMenu(menu, anchorEl);
 
     menu.addEventListener("click", async (e) => {
       const t = e.target;
