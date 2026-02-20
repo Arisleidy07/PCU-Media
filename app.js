@@ -1878,9 +1878,6 @@ class PCUMedia {
   }
 
   openFullScreenMedia(file) {
-    // Find current file index in the current folder
-    const currentIndex = this.files.findIndex((f) => f.path === file.path);
-
     // Create full-screen overlay
     const overlay = document.createElement("div");
     overlay.className = "fullscreen-media-overlay";
@@ -1893,22 +1890,9 @@ class PCUMedia {
       background: rgba(0,0,0,0.95);
       z-index: 2000;
       display: flex;
-      flex-direction: column;
-      animation: fadeIn 0.3s ease-out;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    `;
-
-    // Create media container
-    const mediaContainer = document.createElement("div");
-    mediaContainer.style.cssText = `
-      width: 100%;
-      min-height: 70vh;
-      display: flex;
       align-items: center;
       justify-content: center;
-      background: #000;
-      position: relative;
+      animation: fadeIn 0.3s ease-out;
     `;
 
     // Create media element
@@ -1920,128 +1904,18 @@ class PCUMedia {
       mediaEl.autoplay = true;
       mediaEl.playsinline = true;
       mediaEl.style.cssText =
-        "max-width:100%; max-height:70vh; object-fit:contain;";
+        "max-width:100%; max-height:100%; object-fit:contain;";
     } else if (file.type === "image") {
       mediaEl = document.createElement("img");
       mediaEl.src = file.url;
       mediaEl.alt = file.name;
       mediaEl.style.cssText =
-        "max-width:100%; max-height:70vh; object-fit:contain;";
+        "max-width:100%; max-height:100%; object-fit:contain;";
     } else {
       // For documents, just open in new tab
       window.open(file.url, "_blank");
       return;
     }
-
-    // Create navigation arrows
-    const createArrow = (direction, onClick) => {
-      const arrow = document.createElement("button");
-      arrow.innerHTML = direction === "prev" ? "‹" : "›";
-      arrow.style.cssText = `
-        position: absolute;
-        top: 50%;
-        ${direction === "prev" ? "left: 20px" : "right: 20px"};
-        transform: translateY(-50%);
-        width: 60px;
-        height: 60px;
-        background: rgba(255,255,255,0.2);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: none;
-        border-radius: 50%;
-        color: white;
-        font-size: 32px;
-        font-weight: bold;
-        cursor: pointer;
-        z-index: 2002;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s;
-      `;
-      arrow.addEventListener("click", onClick);
-      return arrow;
-    };
-
-    // Navigation functions
-    const showMedia = (index) => {
-      const newFile = this.files[index];
-      if (!newFile) return;
-
-      if (newFile.type === "video") {
-        mediaEl.src = newFile.url;
-        mediaEl.autoplay = true;
-      } else if (newFile.type === "image") {
-        mediaEl.src = newFile.url;
-        mediaEl.alt = newFile.name;
-      }
-
-      // Update gallery
-      updateGallery(index);
-    };
-
-    const showPrev = () => {
-      const prevIndex =
-        currentIndex > 0 ? currentIndex - 1 : this.files.length - 1;
-      showMedia(prevIndex);
-    };
-
-    const showNext = () => {
-      const nextIndex =
-        currentIndex < this.files.length - 1 ? currentIndex + 1 : 0;
-      showMedia(nextIndex);
-    };
-
-    // Create arrows if there are multiple files
-    let prevArrow, nextArrow;
-    if (this.files.length > 1) {
-      prevArrow = createArrow("prev", showPrev);
-      nextArrow = createArrow("next", showNext);
-    }
-
-    // Create gallery below
-    const galleryContainer = document.createElement("div");
-    galleryContainer.style.cssText = `
-      width: 100%;
-      padding: 20px;
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      background: rgba(0,0,0,0.8);
-    `;
-
-    const updateGallery = (activeIndex) => {
-      galleryContainer.innerHTML = "";
-      this.files.forEach((f, i) => {
-        const thumb = document.createElement("div");
-        thumb.style.cssText = `
-          min-width: 80px;
-          height: 60px;
-          border: 2px solid ${i === activeIndex ? "var(--accent)" : "transparent"};
-          border-radius: 8px;
-          overflow: hidden;
-          cursor: pointer;
-          background: #000;
-        `;
-
-        if (f.type === "image") {
-          const img = document.createElement("img");
-          img.src = f.url;
-          img.style.cssText = "width:100%; height:100%; object-fit:cover;";
-          thumb.appendChild(img);
-        } else {
-          const icon = document.createElement("div");
-          icon.style.cssText =
-            "width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:white; font-size:12px;";
-          icon.textContent = f.type === "video" ? "▶" : "📄";
-          thumb.appendChild(icon);
-        }
-
-        thumb.addEventListener("click", () => showMedia(i));
-        galleryContainer.appendChild(thumb);
-      });
-    };
 
     // Create close button
     const closeBtn = document.createElement("button");
@@ -2077,16 +1951,9 @@ class PCUMedia {
     });
 
     // Add to DOM
-    mediaContainer.appendChild(mediaEl);
-    if (prevArrow) mediaContainer.appendChild(prevArrow);
-    if (nextArrow) mediaContainer.appendChild(nextArrow);
-    overlay.appendChild(mediaContainer);
-    overlay.appendChild(galleryContainer);
+    overlay.appendChild(mediaEl);
     overlay.appendChild(closeBtn);
     document.body.appendChild(overlay);
-
-    // Initialize gallery
-    updateGallery(currentIndex);
 
     // Add fade out animation if not present
     if (!document.querySelector("#fadeOutStyle")) {
