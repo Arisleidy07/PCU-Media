@@ -1897,20 +1897,12 @@ class PCUMedia {
 
     // Create media element
     let mediaEl;
-    if (file.type === "video") {
-      mediaEl = document.createElement("video");
-      mediaEl.src = file.url;
-      mediaEl.controls = true;
-      mediaEl.autoplay = true;
-      mediaEl.playsinline = true;
-      mediaEl.style.cssText =
-        "max-width:100%; max-height:100%; object-fit:contain;";
-    } else if (file.type === "image") {
+    if (file.type === "image") {
       mediaEl = document.createElement("img");
       mediaEl.src = file.url;
       mediaEl.alt = file.name;
       mediaEl.style.cssText =
-        "max-width:100%; max-height:100%; object-fit:contain;";
+        "max-width:100%; max-height:100%; object-fit:contain; display: block;";
     } else {
       // For documents, just open in new tab
       window.open(file.url, "_blank");
