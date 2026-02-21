@@ -2156,41 +2156,56 @@ body {
   /* Preview: Amazon-style on mobile - single flow, no separate containers */
   .preview-modal.active {
     display: block;
-    padding: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: rgba(0, 0, 0, 0.8);
   }
 
   .preview-content {
     width: 100%;
-    background: var(--bg);
-    /* No flex, no fixed height - natural document flow */
+    min-height: 100vh;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    display: block;
   }
 
   .preview-media {
     width: 100%;
     background: #000;
     cursor: pointer;
-    /* Part of normal flow, not fixed or separate */
+    position: relative;
+    display: block;
   }
 
   .preview-info {
     width: 100%;
+    background: var(--bg);
     border-top: 1px solid var(--border);
     padding: 16px;
     padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    /* Normal flow element */
+    display: block;
   }
 
   .preview-close {
     position: fixed;
     top: env(safe-area-inset-top, 12px);
-    right: 12px;
-    width: 48px;
-    height: 48px;
-    background: rgba(0, 0, 0, 0.7);
+    left: 20px;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    border: none;
     border-radius: 50%;
-    z-index: 1001;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 2001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Add tap hint on media */
