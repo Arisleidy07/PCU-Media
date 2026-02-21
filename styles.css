@@ -2184,25 +2184,31 @@ body {
     overflow: visible;
     display: block;
     padding: 0;
+    margin: 0;
+    /* Ensure content starts at very top */
+    position: relative;
+    top: 0;
   }
 
   .preview-media {
     width: 100%;
-    background: transparent;
+    background: #000;
     cursor: pointer;
     position: relative;
     display: block;
     margin: 0;
+    /* Image at very top */
   }
 
   .preview-info {
     width: 100%;
     background: var(--bg);
     padding: 4px 6px;
-    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+    /* Remove giant space - minimal padding below */
+    padding-bottom: max(4px, env(safe-area-inset-bottom, 0px));
     display: block;
     margin: 0;
-    /* Remove border - seamless visual flow */
+    /* Info right below image with no gap */
     border-top: none;
   }
 
