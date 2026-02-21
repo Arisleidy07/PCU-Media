@@ -2195,13 +2195,13 @@ body {
 
   .preview-media {
     width: 100%;
-    background: #000;
+    background: transparent;
     cursor: pointer;
     position: relative;
     display: block;
     margin: 0;
     padding: 0;
-    /* Image at very top touching border */
+    /* Image at very top touching border - no background */
   }
 
   .preview-info {
