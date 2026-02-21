@@ -2148,6 +2148,15 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* Ensure mobile page can scroll */
+  html,
+  body {
+    overflow-x: hidden;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    height: auto !important;
+  }
+
   .gallery-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
