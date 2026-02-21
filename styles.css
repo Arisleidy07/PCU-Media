@@ -2162,7 +2162,7 @@ body {
     gap: 10px;
   }
 
-  /* Preview: Amazon-style on mobile - natural height, no forced full screen */
+  /* Preview: Final mobile layout - image at top, content adjusts to fit */
   .preview-modal.active {
     position: fixed;
     top: 0;
@@ -2171,13 +2171,13 @@ body {
     bottom: 0;
     z-index: 1000;
     background: var(--bg);
+    /* Allow modal to scroll if needed, but content should fit naturally */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
   .preview-content {
     width: 100%;
-    /* Remove min-height: 100vh - let content determine natural height */
     background: transparent;
     border: none;
     border-radius: 0;
@@ -2185,9 +2185,12 @@ body {
     display: block;
     padding: 0;
     margin: 0;
-    /* Ensure content starts at very top */
+    /* Content starts at very top */
     position: relative;
     top: 0;
+    /* Container adjusts to content - no fixed height */
+    min-height: auto;
+    height: auto;
   }
 
   .preview-media {
@@ -2197,19 +2200,20 @@ body {
     position: relative;
     display: block;
     margin: 0;
-    /* Image at very top */
+    padding: 0;
+    /* Image at very top touching border */
   }
 
   .preview-info {
     width: 100%;
     background: var(--bg);
-    padding: 4px 6px;
-    /* Remove giant space - minimal padding below */
-    padding-bottom: max(4px, env(safe-area-inset-bottom, 0px));
+    /* Normal spacing below image - 12px */
+    padding: 12px 8px 8px 8px;
     display: block;
     margin: 0;
-    /* Info right below image with no gap */
     border-top: none;
+    /* Download button close to content, minimal space below */
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
   }
 
   .preview-close {
