@@ -2153,7 +2153,7 @@ body {
     gap: 10px;
   }
 
-  /* Preview: Amazon-style on mobile - behaves like normal page, not modal */
+  /* Preview: Amazon-style on mobile - natural height, no forced full screen */
   .preview-modal.active {
     position: fixed;
     top: 0;
@@ -2168,7 +2168,7 @@ body {
 
   .preview-content {
     width: 100%;
-    min-height: 100vh;
+    /* Remove min-height: 100vh - let content determine natural height */
     background: transparent;
     border: none;
     border-radius: 0;
@@ -2189,10 +2189,11 @@ body {
   .preview-info {
     width: 100%;
     background: var(--bg);
-    padding: 12px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 12px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
     display: block;
     margin: 0;
+    /* No gap between media and info - visually connected */
   }
 
   .preview-close {
