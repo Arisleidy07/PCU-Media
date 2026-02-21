@@ -2153,12 +2153,17 @@ body {
     gap: 10px;
   }
 
-  /* Preview: Amazon-style on mobile - single flow, no separate containers */
+  /* Preview: Amazon-style on mobile - behaves like normal page, not modal */
   .preview-modal.active {
-    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    background: var(--bg);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    background: rgba(0, 0, 0, 0.8);
   }
 
   .preview-content {
@@ -2169,6 +2174,7 @@ body {
     border-radius: 0;
     overflow: visible;
     display: block;
+    padding: 0;
   }
 
   .preview-media {
@@ -2177,15 +2183,16 @@ body {
     cursor: pointer;
     position: relative;
     display: block;
+    margin: 0;
   }
 
   .preview-info {
     width: 100%;
     background: var(--bg);
-    border-top: 1px solid var(--border);
     padding: 16px;
     padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     display: block;
+    margin: 0;
   }
 
   .preview-close {
@@ -2208,39 +2215,20 @@ body {
     justify-content: center;
   }
 
-  /* Add tap hint on media */
-  .preview-media::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 48px;
-    height: 48px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-  }
-
-  .preview-media:hover::after {
-    opacity: 1;
-  }
-
-  /* Media sizing - natural flow, no max-height restrictions */
+  /* Media sizing - natural aspect ratio, no distortion */
   #previewContainer {
     width: 100%;
+    padding: 0;
+    margin: 0;
   }
 
   #previewContainer img,
   #previewContainer video {
     width: 100%;
     height: auto;
-    object-fit: cover;
-    object-position: top;
     display: block;
-    /* No max-height - let content determine natural size */
+    margin: 0;
+    /* Let images show at natural size without any object-fit distortion */
   }
 
   #previewContainer iframe {
@@ -2250,6 +2238,7 @@ body {
     border: none;
     border-radius: 8px;
     background: white;
+    margin: 0;
   }
 
   /* Item action buttons - bigger touch targets */
