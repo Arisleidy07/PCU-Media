@@ -2189,8 +2189,8 @@ body {
   .preview-info {
     width: 100%;
     background: var(--bg);
-    padding: 16px;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     display: block;
     margin: 0;
   }
@@ -2198,16 +2198,16 @@ body {
   .preview-close {
     position: fixed;
     top: env(safe-area-inset-top, 12px);
-    left: 20px;
-    width: 32px;
-    height: 32px;
+    left: 12px;
+    width: 36px;
+    height: 36px;
     background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: none;
     border-radius: 50%;
     color: white;
-    font-size: 18px;
+    font-size: 20px;
     cursor: pointer;
     z-index: 2001;
     display: flex;
@@ -2233,10 +2233,10 @@ body {
 
   #previewContainer iframe {
     width: 100%;
-    height: 60vh;
-    min-height: 400px;
+    height: 50vh;
+    min-height: 300px;
     border: none;
-    border-radius: 8px;
+    border-radius: 6px;
     background: white;
     margin: 0;
   }
