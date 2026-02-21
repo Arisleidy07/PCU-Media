@@ -2189,8 +2189,8 @@ body {
   .preview-info {
     width: 100%;
     background: var(--bg);
-    padding: 8px 12px;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    padding: 4px 6px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
     display: block;
     margin: 0;
     /* Remove border - seamless visual flow */
