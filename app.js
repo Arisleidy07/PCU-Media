@@ -1981,34 +1981,61 @@ class PCUMedia {
   async shareFile() {
     if (!this.currentPreviewFile) return;
 
+    // 1. VERIFY REAL SUPPORT BEFORE ANYTHING
+    if (!navigator.share) {
+      this.showToast({
+        title: "No compatible",
+        message: "Tu navegador no tiene Web Share API",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (!navigator.canShare) {
+      this.showToast({
+        title: "No compatible",
+        message:
+          "Tu navegador no puede verificar compatibilidad para compartir archivos",
+        variant: "error",
+      });
+      return;
+    }
+
     try {
-      // Check for Web Share API support
-      if (!navigator.share || !navigator.canShare) {
-        this.showToast({
-          title: "No compatible",
-          message: "Tu navegador no permite compartir archivos",
-          variant: "error",
-        });
-        return;
+      // 2. GET FILE AS BLOB - NO URL SHARING
+      const response = await fetch(this.currentPreviewFile.url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Fetch the file as blob for real file sharing
-      const response = await fetch(this.currentPreviewFile.url);
       const blob = await response.blob();
 
-      // Ensure correct MIME type
-      const mimeType =
-        this.currentPreviewFile.type === "video"
-          ? "video/mp4"
-          : this.currentPreviewFile.type === "image"
-            ? blob.type || "image/jpeg"
-            : blob.type || "";
+      // 3. VALIDATE BLOB IS NOT EMPTY
+      if (!blob || blob.size === 0) {
+        throw new Error("Archivo vacío o corrupto");
+      }
 
-      const shareFile = new File([blob], this.currentPreviewFile.name, {
-        type: mimeType,
-      });
+      // 4. CORRECT MIME TYPE
+      let mimeType = blob.type;
+      if (!mimeType) {
+        mimeType =
+          this.currentPreviewFile.type === "video"
+            ? "video/mp4"
+            : this.currentPreviewFile.type === "image"
+              ? "image/jpeg"
+              : "";
+      }
 
-      // Check if we can share files
+      // 5. VALIDATE FILE NAME
+      const fileName = this.currentPreviewFile.name;
+      if (!fileName || typeof fileName !== "string") {
+        throw new Error("Nombre de archivo inválido");
+      }
+
+      // 6. CREATE FILE OBJECT
+      const shareFile = new File([blob], fileName, { type: mimeType });
+
+      // 7. VERIFY WE CAN SHARE FILES BEFORE CALLING
       if (!navigator.canShare({ files: [shareFile] })) {
         this.showToast({
           title: "No compatible",
@@ -2018,21 +2045,42 @@ class PCUMedia {
         return;
       }
 
-      // Use native share sheet - NO navigation, NO URLs
+      // 8. NATIVE SHARE - NO URLS, NO NAVIGATION
       await navigator.share({
-        title: this.currentPreviewFile.name,
+        title: fileName,
         files: [shareFile],
       });
     } catch (error) {
-      // User cancelled or error - NO fallback to URLs
+      // 9. EXACT ERROR HANDLING - NO FALLBACKS
+      console.error("Share error:", error.name, error.message);
+
       if (error.name === "AbortError") {
-        // User cancelled share dialog - this is normal
+        // User cancelled - normal, no message needed
         return;
       }
 
+      if (error.name === "NotAllowedError") {
+        this.showToast({
+          title: "Permiso denegado",
+          message: "No se permitió compartir el archivo",
+          variant: "error",
+        });
+        return;
+      }
+
+      if (error.name === "NotSupportedError") {
+        this.showToast({
+          title: "No soportado",
+          message: "Tu navegador no soporta compartir archivos",
+          variant: "error",
+        });
+        return;
+      }
+
+      // Generic error with real message
       this.showToast({
         title: "Error al compartir",
-        message: "No se pudo compartir el archivo",
+        message: error.message || "No se pudo compartir el archivo",
         variant: "error",
       });
     }
