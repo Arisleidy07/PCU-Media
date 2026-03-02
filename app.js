@@ -1982,60 +1982,24 @@ class PCUMedia {
     if (!this.currentPreviewFile) return;
 
     try {
-      // Always try to share the file
+      // ALWAYS try to share actual file first
       const response = await fetch(this.currentPreviewFile.url);
       const blob = await response.blob();
       const shareFile = new File([blob], this.currentPreviewFile.name, {
         type: blob.type || "",
       });
 
-      // Try native share first
+      // ONLY share actual file - no URL fallback, no clipboard
       if (navigator.share && navigator.canShare) {
-        try {
-          await navigator.share({
-            title: this.currentPreviewFile.name,
-            text: this.currentPreviewFile.name,
-            files: [shareFile],
-          });
-          return;
-        } catch (error) {
-          // If native share fails, try URL share
-        }
-      }
-
-      // Fallback to URL share - ALWAYS works
-      if (navigator.share) {
         await navigator.share({
           title: this.currentPreviewFile.name,
           text: this.currentPreviewFile.name,
-          url: this.currentPreviewFile.url,
-        });
-      } else {
-        // Last resort - copy to clipboard
-        await navigator.clipboard.writeText(this.currentPreviewFile.url);
-        this.showToast({
-          title: "Enlace copiado",
-          message: "El enlace está en el portapapeles",
-          variant: "success",
+          files: [shareFile],
         });
       }
     } catch (error) {
-      // Final fallback - copy URL
-      try {
-        await navigator.clipboard.writeText(this.currentPreviewFile.url);
-        this.showToast({
-          title: "Enlace copiado",
-          message: "El enlace está en el portapapeles",
-          variant: "success",
-        });
-      } catch (_) {
-        // Always show success even if everything fails
-        this.showToast({
-          title: "Compartido",
-          message: "Archivo listo para compartir",
-          variant: "success",
-        });
-      }
+      // If file sharing fails, do nothing - no clipboard, no URL
+      console.log("Share cancelled or not supported");
     }
   }
 
