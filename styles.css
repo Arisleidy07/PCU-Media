@@ -2151,7 +2151,7 @@ body {
   /* Mobile app behavior - fixed width, no zoom, no horizontal scroll */
   html,
   body {
-    overflow-x: hidden;
+    overflow-x: hidden !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
     height: auto !important;
@@ -2160,19 +2160,33 @@ body {
     /* No horizontal movement */
     position: relative;
     max-width: 100vw;
+    min-width: 100vw;
   }
 
-  /* Ensure main containers respect mobile width */
+  /* Ensure ALL containers respect mobile width */
+  * {
+    box-sizing: border-box;
+  }
+
   #app,
   .main-content,
-  .gallery-container {
-    max-width: 100vw;
+  .gallery-container,
+  .sidebar,
+  .content-area,
+  .preview-modal,
+  .upload-modal,
+  .folder-modal,
+  .move-modal {
+    max-width: 100vw !important;
+    min-width: 100vw !important;
+    overflow-x: hidden !important;
     box-sizing: border-box;
   }
 
   .gallery-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+    padding: 0 8px;
   }
 
   /* Preview: Final mobile layout - image at top, content adjusts to fit */
@@ -2187,6 +2201,8 @@ body {
     /* Allow modal to scroll if needed, but content should fit naturally */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    max-width: 100vw;
+    min-width: 100vw;
   }
 
   .preview-content {
@@ -2204,6 +2220,7 @@ body {
     /* Container adjusts to content - no fixed height */
     min-height: auto;
     height: auto;
+    max-width: 100vw;
   }
 
   .preview-media {
@@ -2215,6 +2232,7 @@ body {
     margin: 0;
     padding: 0;
     /* Image at very top touching border - no background */
+    max-width: 100vw;
   }
 
   .preview-info {
@@ -2227,6 +2245,7 @@ body {
     border-top: none;
     /* Download button close to content, minimal space below */
     padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    max-width: 100vw;
   }
 
   .preview-close {
