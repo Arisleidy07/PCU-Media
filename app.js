@@ -1986,38 +1986,29 @@ class PCUMedia {
     try {
       let blob;
 
-      // Try different methods to get the file
-      try {
-        // Method 1: Direct fetch
+      // Use existing image from preview to avoid CORS
+      const previewImg = document.querySelector("#previewContainer img");
+      const previewVideo = document.querySelector("#previewContainer video");
+
+      if (previewImg) {
+        // Convert existing image to blob
+        const canvas = document.createElement("canvas");
+        canvas.width = previewImg.naturalWidth;
+        canvas.height = previewImg.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(previewImg, 0, 0);
+
+        blob = await new Promise((resolve) => {
+          canvas.toBlob(resolve, "image/png");
+        });
+      } else if (previewVideo) {
+        // For videos, try direct fetch
         const response = await fetch(this.currentPreviewFile.url);
         blob = await response.blob();
-      } catch (fetchError) {
-        console.log("Fetch failed, trying image method:", fetchError);
-
-        // Method 2: Use image element to bypass CORS
-        if (this.currentPreviewFile.type === "image") {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.src = this.currentPreviewFile.url;
-
-          await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-          });
-
-          // Convert canvas to blob
-          const canvas = document.createElement("canvas");
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0);
-
-          blob = await new Promise((resolve) => {
-            canvas.toBlob(resolve, "image/png");
-          });
-        } else {
-          throw fetchError;
-        }
+      } else {
+        // Fallback to fetch
+        const response = await fetch(this.currentPreviewFile.url);
+        blob = await response.blob();
       }
 
       const file = new File([blob], this.currentPreviewFile.name, {
