@@ -53,6 +53,11 @@ body {
     Arial,
     "Apple Color Emoji",
     "Segoe UI Emoji";
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  max-width: 100%;
   background:
     radial-gradient(
       1200px 700px at 70% -10%,
@@ -60,17 +65,30 @@ body {
       transparent 55%
     ),
     radial-gradient(
-      900px 500px at 15% 15%,
-      rgba(56, 189, 248, 0.18),
-      transparent 55%
-    ),
-    var(--bg);
+      800px 600px at 30% 110%,
+      rgba(56, 189, 248, 0.15),
+      transparent 50%
+    );
+  background-color: var(--bg);
   color: var(--text);
+  font-size: 15px;
   line-height: 1.6;
-  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+  max-width: 100%;
 }
 
 #app {
+  overflow-x: hidden;
+  overflow-y: auto;
+  position: relative;
+  max-width: 100%;
   display: flex;
   height: 100vh;
 }
@@ -2151,21 +2169,33 @@ body {
   /* Mobile app behavior - fixed width, no zoom, no horizontal scroll */
   html,
   body {
-    overflow-x: hidden;
+    overflow-x: hidden !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
     height: auto !important;
-    /* Prevent pinch zoom */
+    /* Prevent pinch zoom and lateral movements */
     touch-action: pan-y;
     /* No horizontal movement */
     position: relative;
     max-width: 100vw;
+    /* Prevent elastic scrolling/bounces */
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: auto;
   }
 
   /* Ensure all containers respect mobile width */
   * {
     max-width: 100vw;
     box-sizing: border-box;
+  }
+
+  /* Prevent lateral movements on touch events */
+  .sidebar,
+  .main-content,
+  .gallery-container,
+  .preview-modal {
+    touch-action: pan-y;
+    overscroll-behavior-x: none;
   }
 
   .gallery-grid {
