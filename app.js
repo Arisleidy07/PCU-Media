@@ -1999,32 +1999,16 @@ class PCUMedia {
         type: blob.type || "",
       });
 
-      // Share the file
+      // ONLY share the file - NO URL fallback
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: this.currentPreviewFile.name,
           files: [file],
         });
-      } else if (navigator.share) {
-        // Fallback to URL if file sharing not supported
-        await navigator.share({
-          title: this.currentPreviewFile.name,
-          url: this.currentPreviewFile.url,
-        });
       }
     } catch (error) {
-      console.log("Share error:", error);
-      // If CORS fails, try direct URL share
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: this.currentPreviewFile.name,
-            url: this.currentPreviewFile.url,
-          });
-        }
-      } catch (fallbackError) {
-        console.log("Fallback share failed:", fallbackError);
-      }
+      console.log("Share failed - no fallback to URL:", error);
+      // Do nothing - no URL sharing
     }
   }
 
