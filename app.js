@@ -754,7 +754,9 @@ class PCUMedia {
     }
 
     const shareBtn = document.getElementById("shareBtn");
-    if (shareBtn) shareBtn.addEventListener("click", () => this.shareFile());
+    if (shareBtn) {
+      shareBtn.addEventListener("click", () => this.shareFile());
+    }
     const downloadBtn = document.getElementById("downloadBtn");
     if (downloadBtn)
       downloadBtn.addEventListener("click", () => this.downloadFile());
@@ -1982,24 +1984,47 @@ class PCUMedia {
     if (!this.currentPreviewFile) return;
 
     try {
-      // ALWAYS try to share actual file first
-      const response = await fetch(this.currentPreviewFile.url);
+      // Create file from URL with CORS fix
+      const response = await fetch(this.currentPreviewFile.url, {
+        mode: "cors",
+        credentials: "omit",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch file");
+      }
+
       const blob = await response.blob();
-      const shareFile = new File([blob], this.currentPreviewFile.name, {
+      const file = new File([blob], this.currentPreviewFile.name, {
         type: blob.type || "",
       });
 
-      // ONLY share actual file - no URL fallback, no clipboard
-      if (navigator.share && navigator.canShare) {
+      // Share the file
+      if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: this.currentPreviewFile.name,
-          text: this.currentPreviewFile.name,
-          files: [shareFile],
+          files: [file],
+        });
+      } else if (navigator.share) {
+        // Fallback to URL if file sharing not supported
+        await navigator.share({
+          title: this.currentPreviewFile.name,
+          url: this.currentPreviewFile.url,
         });
       }
     } catch (error) {
-      // If file sharing fails, do nothing - no clipboard, no URL
-      console.log("Share cancelled or not supported");
+      console.log("Share error:", error);
+      // If CORS fails, try direct URL share
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: this.currentPreviewFile.name,
+            url: this.currentPreviewFile.url,
+          });
+        }
+      } catch (fallbackError) {
+        console.log("Fallback share failed:", fallbackError);
+      }
     }
   }
 
