@@ -1984,14 +1984,47 @@ class PCUMedia {
     if (!this.currentPreviewFile) return;
 
     try {
-      // ONLY try to share file - NO URL fallbacks
-      const response = await fetch(this.currentPreviewFile.url);
-      const blob = await response.blob();
+      let blob;
+
+      // Try different methods to get the file
+      try {
+        // Method 1: Direct fetch
+        const response = await fetch(this.currentPreviewFile.url);
+        blob = await response.blob();
+      } catch (fetchError) {
+        console.log("Fetch failed, trying image method:", fetchError);
+
+        // Method 2: Use image element to bypass CORS
+        if (this.currentPreviewFile.type === "image") {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.src = this.currentPreviewFile.url;
+
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+          });
+
+          // Convert canvas to blob
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+
+          blob = await new Promise((resolve) => {
+            canvas.toBlob(resolve, "image/png");
+          });
+        } else {
+          throw fetchError;
+        }
+      }
+
       const file = new File([blob], this.currentPreviewFile.name, {
-        type: blob.type || "",
+        type: blob.type || this.currentPreviewFile.type,
       });
 
-      // ONLY share the file - NO URL sharing
+      // Share the file
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: this.currentPreviewFile.name,
@@ -1999,8 +2032,7 @@ class PCUMedia {
         });
       }
     } catch (error) {
-      console.log("Share failed - no URL fallback:", error);
-      // Do nothing - NO URL sharing
+      console.log("Share failed:", error);
     }
   }
 
