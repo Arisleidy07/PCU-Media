@@ -1981,108 +1981,34 @@ class PCUMedia {
   async shareFile() {
     if (!this.currentPreviewFile) return;
 
-    // 1. VERIFY REAL SUPPORT BEFORE ANYTHING
-    if (!navigator.share) {
-      this.showToast({
-        title: "No compatible",
-        message: "Tu navegador no tiene Web Share API",
-        variant: "error",
-      });
-      return;
-    }
-
-    if (!navigator.canShare) {
-      this.showToast({
-        title: "No compatible",
-        message:
-          "Tu navegador no puede verificar compatibilidad para compartir archivos",
-        variant: "error",
-      });
-      return;
-    }
-
     try {
-      // 2. GET FILE AS BLOB - NO URL SHARING
-      const response = await fetch(this.currentPreviewFile.url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (navigator.share && navigator.canShare) {
+        // Try to share as file ONLY - no URL fallback
+        try {
+          const response = await fetch(this.currentPreviewFile.url);
+          const blob = await response.blob();
+          const shareFile = new File([blob], this.currentPreviewFile.name, {
+            type: blob.type || "",
+          });
+          if (navigator.canShare({ files: [shareFile] })) {
+            await navigator.share({
+              title: this.currentPreviewFile.name,
+              text: this.currentPreviewFile.name,
+              files: [shareFile],
+            });
+            return;
+          }
+        } catch (_) {
+          // If file sharing fails, do nothing - no URL fallback
+          console.log("File sharing not supported");
+        }
       }
 
-      const blob = await response.blob();
-
-      // 3. VALIDATE BLOB IS NOT EMPTY
-      if (!blob || blob.size === 0) {
-        throw new Error("Archivo vacío o corrupto");
-      }
-
-      // 4. CORRECT MIME TYPE
-      let mimeType = blob.type;
-      if (!mimeType) {
-        mimeType =
-          this.currentPreviewFile.type === "video"
-            ? "video/mp4"
-            : this.currentPreviewFile.type === "image"
-              ? "image/jpeg"
-              : "";
-      }
-
-      // 5. VALIDATE FILE NAME
-      const fileName = this.currentPreviewFile.name;
-      if (!fileName || typeof fileName !== "string") {
-        throw new Error("Nombre de archivo inválido");
-      }
-
-      // 6. CREATE FILE OBJECT
-      const shareFile = new File([blob], fileName, { type: mimeType });
-
-      // 7. VERIFY WE CAN SHARE FILES BEFORE CALLING
-      if (!navigator.canShare({ files: [shareFile] })) {
-        this.showToast({
-          title: "No compatible",
-          message: "Tu navegador no permite compartir este tipo de archivo",
-          variant: "error",
-        });
-        return;
-      }
-
-      // 8. NATIVE SHARE - NO URLS, NO NAVIGATION
-      await navigator.share({
-        title: fileName,
-        files: [shareFile],
-      });
+      // If no native share available, do nothing - no URLs, no navigation
+      console.log("Native share not available");
     } catch (error) {
-      // 9. EXACT ERROR HANDLING - NO FALLBACKS
-      console.error("Share error:", error.name, error.message);
-
-      if (error.name === "AbortError") {
-        // User cancelled - normal, no message needed
-        return;
-      }
-
-      if (error.name === "NotAllowedError") {
-        this.showToast({
-          title: "Permiso denegado",
-          message: "No se permitió compartir el archivo",
-          variant: "error",
-        });
-        return;
-      }
-
-      if (error.name === "NotSupportedError") {
-        this.showToast({
-          title: "No soportado",
-          message: "Tu navegador no soporta compartir archivos",
-          variant: "error",
-        });
-        return;
-      }
-
-      // Generic error with real message
-      this.showToast({
-        title: "Error al compartir",
-        message: error.message || "No se pudo compartir el archivo",
-        variant: "error",
-      });
+      // Silent fail - no fallback to URLs or downloads
+      console.log("Share cancelled or failed");
     }
   }
 
