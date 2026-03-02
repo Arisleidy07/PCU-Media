@@ -1982,41 +1982,59 @@ class PCUMedia {
     if (!this.currentPreviewFile) return;
 
     try {
-      if (navigator.share && navigator.canShare) {
-        // Fetch the file as blob for real file sharing
-        const response = await fetch(this.currentPreviewFile.url);
-        const blob = await response.blob();
-
-        // Ensure correct MIME type for videos
-        const mimeType =
-          this.currentPreviewFile.type === "video"
-            ? "video/mp4"
-            : blob.type || this.currentPreviewFile.type || "";
-
-        const shareFile = new File([blob], this.currentPreviewFile.name, {
-          type: mimeType,
+      // Check for Web Share API support
+      if (!navigator.share || !navigator.canShare) {
+        this.showToast({
+          title: "No compatible",
+          message: "Tu navegador no permite compartir archivos",
+          variant: "error",
         });
-
-        // Check if we can share files
-        if (navigator.canShare({ files: [shareFile] })) {
-          await navigator.share({
-            title: this.currentPreviewFile.name,
-            text: `Compartido desde PCU Media - ${this.currentPreviewFile.name}`,
-            files: [shareFile],
-          });
-          return;
-        } else {
-          // Browser doesn't support file sharing, fallback to download
-          this.downloadFile();
-        }
-      } else {
-        // No Web Share API: fallback to download
-        this.downloadFile();
+        return;
       }
+
+      // Fetch the file as blob for real file sharing
+      const response = await fetch(this.currentPreviewFile.url);
+      const blob = await response.blob();
+
+      // Ensure correct MIME type
+      const mimeType =
+        this.currentPreviewFile.type === "video"
+          ? "video/mp4"
+          : this.currentPreviewFile.type === "image"
+            ? blob.type || "image/jpeg"
+            : blob.type || "";
+
+      const shareFile = new File([blob], this.currentPreviewFile.name, {
+        type: mimeType,
+      });
+
+      // Check if we can share files
+      if (!navigator.canShare({ files: [shareFile] })) {
+        this.showToast({
+          title: "No compatible",
+          message: "Tu navegador no permite compartir este tipo de archivo",
+          variant: "error",
+        });
+        return;
+      }
+
+      // Use native share sheet - NO navigation, NO URLs
+      await navigator.share({
+        title: this.currentPreviewFile.name,
+        files: [shareFile],
+      });
     } catch (error) {
-      console.error("Share error:", error);
-      // Fallback to download on any error
-      this.downloadFile();
+      // User cancelled or error - NO fallback to URLs
+      if (error.name === "AbortError") {
+        // User cancelled share dialog - this is normal
+        return;
+      }
+
+      this.showToast({
+        title: "Error al compartir",
+        message: "No se pudo compartir el archivo",
+        variant: "error",
+      });
     }
   }
 
