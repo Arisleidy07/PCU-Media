@@ -1984,39 +1984,23 @@ class PCUMedia {
     if (!this.currentPreviewFile) return;
 
     try {
-      // Simple approach - try to share file directly
+      // ONLY try to share file - NO URL fallbacks
       const response = await fetch(this.currentPreviewFile.url);
       const blob = await response.blob();
       const file = new File([blob], this.currentPreviewFile.name, {
         type: blob.type || "",
       });
 
-      // Share the file
+      // ONLY share the file - NO URL sharing
       if (navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: this.currentPreviewFile.name,
           files: [file],
         });
-      } else if (navigator.share) {
-        // Fallback to URL if file sharing not supported
-        await navigator.share({
-          title: this.currentPreviewFile.name,
-          url: this.currentPreviewFile.url,
-        });
       }
     } catch (error) {
-      console.log("Share failed:", error);
-      // Last resort - try URL share
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: this.currentPreviewFile.name,
-            url: this.currentPreviewFile.url,
-          });
-        }
-      } catch (fallbackError) {
-        console.log("All share methods failed:", fallbackError);
-      }
+      console.log("Share failed - no URL fallback:", error);
+      // Do nothing - NO URL sharing
     }
   }
 
