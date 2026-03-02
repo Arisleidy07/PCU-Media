@@ -1998,17 +1998,33 @@ class PCUMedia {
             });
             return;
           }
-        } catch (_) {
-          // If file sharing fails, do nothing - no URL fallback
-          console.log("File sharing not supported");
+        } catch (error) {
+          console.log("File sharing failed:", error);
+          // Show toast for user feedback
+          this.showToast({
+            title: "Compartir no disponible",
+            message: "Tu dispositivo no permite compartir archivos",
+            variant: "error",
+          });
         }
+      } else {
+        // Show toast for devices without native share
+        this.showToast({
+          title: "Compartir no disponible",
+          message: "Tu dispositivo no soporta compartir archivos",
+          variant: "error",
+        });
       }
-
-      // If no native share available, do nothing - no URLs, no navigation
-      console.log("Native share not available");
     } catch (error) {
-      // Silent fail - no fallback to URLs or downloads
-      console.log("Share cancelled or failed");
+      // User cancelled or other error
+      console.log("Share cancelled or failed:", error);
+      if (error.name !== "AbortError") {
+        this.showToast({
+          title: "Compartir cancelado",
+          message: "No se pudo compartir el archivo",
+          variant: "error",
+        });
+      }
     }
   }
 
