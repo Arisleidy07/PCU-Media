@@ -241,7 +241,7 @@ class PCUMedia {
     }
     if (extEl) extEl.textContent = parts.ext || "";
     modal.classList.add("active");
-    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
   }
 
   closeRenameFileModal() {
@@ -334,7 +334,7 @@ class PCUMedia {
     const nameEl = document.getElementById("deleteFileName");
     if (nameEl) nameEl.textContent = file.name;
     modal.classList.add("active");
-    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
   }
 
   closeDeleteFileModal() {
@@ -402,7 +402,7 @@ class PCUMedia {
       window.setTimeout(() => input.focus(), 30);
     }
     modal.classList.add("active");
-    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
   }
 
   closeRenameFolderModal() {
@@ -467,7 +467,7 @@ class PCUMedia {
     const nameEl = document.getElementById("deleteFolderName");
     if (nameEl) nameEl.textContent = node.name || "";
     modal.classList.add("active");
-    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
   }
 
   closeDeleteFolderModal() {
@@ -753,13 +753,12 @@ class PCUMedia {
       });
     }
 
-    const shareBtn = document.getElementById("shareBtn");
-    if (shareBtn) {
-      shareBtn.addEventListener("click", () => this.shareFile());
-    }
-    const downloadBtn = document.getElementById("downloadBtn");
-    if (downloadBtn)
-      downloadBtn.addEventListener("click", () => this.downloadFile());
+    document
+      .getElementById("shareBtn")
+      .addEventListener("click", () => this.shareFile());
+    document
+      .getElementById("downloadBtn")
+      .addEventListener("click", () => this.downloadFile());
 
     uploadPreviewArea.addEventListener("click", () => uploadFileInput.click());
     uploadFileInput.addEventListener("change", (e) => {
@@ -1021,10 +1020,6 @@ class PCUMedia {
       left.addEventListener("click", (e) => {
         e.stopPropagation();
         this.navigateToFolder(node.path);
-        // Cerrar sidebar en móvil
-        if (window.innerWidth < 980) {
-          this.toggleSidebar(false);
-        }
       });
     }
 
@@ -1142,29 +1137,23 @@ class PCUMedia {
       this.openFolderMenu(node, div);
     });
 
-    // Tap prolongado en móvil para mostrar menú - passive so click still fires
+    // Tap prolongado en móvil para mostrar menú
     let lpTimer = null;
-    let lpFired = false;
     const startLP = (e) => {
-      lpFired = false;
+      try {
+        if (e && e.preventDefault) e.preventDefault();
+      } catch {}
       lpTimer = window.setTimeout(() => {
-        lpFired = true;
         this.openFolderMenu(node, menuBtn || div);
-      }, 600);
+      }, 500);
     };
     const cancelLP = () => {
       if (lpTimer) window.clearTimeout(lpTimer);
       lpTimer = null;
     };
-    div.addEventListener("touchstart", startLP, { passive: true });
-    div.addEventListener("touchend", (e) => {
-      cancelLP();
-      if (lpFired) {
-        e.preventDefault();
-        lpFired = false;
-      }
-    });
-    div.addEventListener("touchmove", cancelLP, { passive: true });
+    div.addEventListener("touchstart", startLP, { passive: false });
+    div.addEventListener("touchend", cancelLP);
+    div.addEventListener("touchmove", cancelLP);
 
     if (hasChildren) {
       const childrenContainer = document.createElement("div");
@@ -1182,18 +1171,10 @@ class PCUMedia {
 
   async navigateToFolder(relPath) {
     this.currentPath = relPath || "";
-    // Cerrar cualquier menú contextual abierto
-    this.closeActionMenu();
-    // Restaurar scroll del body por si había modal abierto
-    document.body.style.overflow = "";
     this.updateBreadcrumbs();
+    await this.loadFiles();
     this.renderFolderTree();
     this.updateFolderToolbar();
-    // Cerrar sidebar en móvil al navegar
-    if (window.innerWidth < 980) {
-      this.toggleSidebar(false);
-    }
-    await this.loadFiles();
   }
 
   updateBreadcrumbs() {
@@ -1319,9 +1300,6 @@ class PCUMedia {
 
     const videos = sortedFiles.filter((f) => f.type === "video");
     const images = sortedFiles.filter((f) => f.type === "image");
-    const docs = sortedFiles.filter(
-      (f) => f.type !== "video" && f.type !== "image",
-    );
 
     const makeSection = (title, items) => {
       if (!items.length) return null;
@@ -1356,8 +1334,6 @@ class PCUMedia {
     if (videosSection) galleryGrid.appendChild(videosSection);
     const imagesSection = makeSection("Imágenes", images);
     if (imagesSection) galleryGrid.appendChild(imagesSection);
-    const docsSection = makeSection("Documentos", docs);
-    if (docsSection) galleryGrid.appendChild(docsSection);
   }
 
   createGalleryItem(file) {
@@ -1386,6 +1362,26 @@ class PCUMedia {
       });
     }
 
+    const mediaElement =
+      file.type === "video"
+        ? `<video src="${file.url}" autoplay muted loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`
+        : `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center">`;
+
+    const videoIndicator =
+      file.type === "video"
+        ? `<div class="video-indicator">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Video
+               </div>`
+        : "";
+
+    const fileNameHtml =
+      file.type === "video"
+        ? ""
+        : `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
+
     const actionsHtml = `
       <div class="item-actions">
         <button class="item-actions__btn" type="button" aria-label="Editar o gestionar">
@@ -1397,32 +1393,7 @@ class PCUMedia {
         </button>
       </div>`;
 
-    let mediaElement, typeIndicator, fileNameHtml;
-
-    if (file.type === "video") {
-      mediaElement = `<video src="${file.url}" autoplay muted loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
-      typeIndicator = `<div class="video-indicator"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Video</div>`;
-      fileNameHtml = `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
-    } else if (file.type === "image") {
-      mediaElement = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center" loading="lazy">`;
-      typeIndicator = "";
-      fileNameHtml = `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
-    } else {
-      // Document / PDF / other
-      const ext = (file.name || "").split(".").pop().toUpperCase() || "FILE";
-      const isPdf = ext === "PDF";
-      mediaElement = `<div class="doc-preview">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
-        <span class="doc-ext">${this.escapeHtml(ext)}</span>
-      </div>`;
-      typeIndicator = `<div class="doc-indicator">${this.escapeHtml(ext)}</div>`;
-      fileNameHtml = `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
-    }
-
-    div.innerHTML = `${actionsHtml}${mediaElement}${typeIndicator}${fileNameHtml}`;
+    div.innerHTML = `${actionsHtml}${mediaElement}${videoIndicator}${fileNameHtml}`;
 
     div.addEventListener("click", (e) => {
       const t = e.target;
@@ -1448,31 +1419,24 @@ class PCUMedia {
       this.openItemMenu(file, anchor);
     });
 
-    // Long press (mobile) - NO preventDefault so click still fires for short taps
+    // Long press (mobile)
     let lpTimer = null;
-    let lpFired = false;
     const startLP = (e) => {
-      lpFired = false;
+      try {
+        if (e && e.preventDefault) e.preventDefault();
+      } catch {}
       lpTimer = window.setTimeout(() => {
-        lpFired = true;
         const anchor = div.querySelector(".item-actions__btn") || div;
         this.openItemMenu(file, anchor);
-      }, 600);
+      }, 500);
     };
     const cancelLP = () => {
       if (lpTimer) window.clearTimeout(lpTimer);
       lpTimer = null;
     };
-    div.addEventListener("touchstart", startLP, { passive: true });
-    div.addEventListener("touchend", (e) => {
-      cancelLP();
-      // If long press fired, block the click
-      if (lpFired) {
-        e.preventDefault();
-        lpFired = false;
-      }
-    });
-    div.addEventListener("touchmove", cancelLP, { passive: true });
+    div.addEventListener("touchstart", startLP, { passive: false });
+    div.addEventListener("touchend", cancelLP);
+    div.addEventListener("touchmove", cancelLP);
 
     return div;
   }
@@ -1814,30 +1778,25 @@ class PCUMedia {
     const modal = document.getElementById("previewModal");
     const container = document.getElementById("previewContainer");
     const fileName = document.getElementById("previewFileName");
+    const filePath = document.getElementById("previewFilePath");
+    const fileDate = document.getElementById("previewFileDate");
+    const fileSize = document.getElementById("previewFileSize");
 
     // Set file info
-    if (fileName) fileName.textContent = file.name;
+    fileName.textContent = file.name;
+    filePath.textContent = this.currentPath
+      ? `${this.currentPath}/${file.name}`
+      : file.name;
+    fileDate.textContent = (file.date || new Date()).toLocaleDateString(
+      "es-ES",
+    );
+    fileSize.textContent = this.formatFileSize(file.size);
 
     // Set media content
     if (file.type === "video") {
       container.innerHTML = `<video src="${file.url}" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
-    } else if (file.type === "image") {
-      container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center">`;
     } else {
-      // Document / PDF — show iframe for PDF, download link for others
-      const ext = (file.name || "").split(".").pop().toLowerCase();
-      if (ext === "pdf") {
-        container.innerHTML = `<iframe src="${file.url}" style="width:100%;height:100%;border:none;border-radius:8px;" title="${this.escapeHtml(file.name)}"></iframe>`;
-      } else {
-        container.innerHTML = `<div class="doc-preview-modal">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-          </svg>
-          <p style="margin:12px 0 4px;font-weight:600;">${this.escapeHtml(file.name)}</p>
-          <a href="${file.url}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:14px;">Abrir archivo</a>
-        </div>`;
-      }
+      container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center">`;
     }
 
     // Rellenar edición de nombre y descripción
@@ -1862,108 +1821,9 @@ class PCUMedia {
     // Ensure edit UI starts hidden
     this.setPreviewEditMode(false);
 
-    // Add click handler to media area for full-screen view (mobile only)
-    const mediaArea = document.querySelector(".preview-media");
-    if (mediaArea) {
-      // Remove existing listener to avoid duplicates
-      mediaArea.removeEventListener("click", this._mediaClickHandler);
-      this._mediaClickHandler = (e) => {
-        e.stopPropagation();
-        this.openFullScreenMedia(file);
-      };
-      mediaArea.addEventListener("click", this._mediaClickHandler);
-    }
-
     // Show modal
     modal.classList.add("active");
     document.body.style.overflow = "hidden";
-  }
-
-  openFullScreenMedia(file) {
-    // Create full-screen overlay
-    const overlay = document.createElement("div");
-    overlay.className = "fullscreen-media-overlay";
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.95);
-      z-index: 2000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: fadeIn 0.3s ease-out;
-    `;
-
-    // Create media element
-    let mediaEl;
-    if (file.type === "image") {
-      mediaEl = document.createElement("img");
-      mediaEl.src = file.url;
-      mediaEl.alt = file.name;
-      mediaEl.style.cssText =
-        "max-width:100%; max-height:100%; object-fit:contain; display: block;";
-    } else {
-      // For documents, just open in new tab
-      window.open(file.url, "_blank");
-      return;
-    }
-
-    // Create close button
-    const closeBtn = document.createElement("button");
-    closeBtn.innerHTML = "✕";
-    closeBtn.style.cssText = `
-      position: fixed;
-      top: env(safe-area-inset-top, 20px);
-      left: 20px;
-      width: 32px;
-      height: 32px;
-      background: rgba(255,255,255,0.2);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: none;
-      border-radius: 50%;
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
-      z-index: 2001;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    `;
-
-    // Add click to close
-    const closeFullscreen = () => {
-      overlay.style.animation = "fadeOut 0.3s ease-out";
-      setTimeout(() => {
-        document.body.removeChild(overlay);
-      }, 300);
-    };
-
-    closeBtn.addEventListener("click", closeFullscreen);
-    overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) closeFullscreen();
-    });
-
-    // Add to DOM
-    overlay.appendChild(mediaEl);
-    overlay.appendChild(closeBtn);
-    document.body.appendChild(overlay);
-
-    // Add fade out animation if not present
-    if (!document.querySelector("#fadeOutStyle")) {
-      const style = document.createElement("style");
-      style.id = "fadeOutStyle";
-      style.textContent = `
-        @keyframes fadeOut {
-          from { opacity: 1; }
-          to { opacity: 0; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
   }
 
   closePreview() {
@@ -1984,53 +1844,42 @@ class PCUMedia {
     if (!this.currentPreviewFile) return;
 
     try {
-      let blob;
-
-      // Use existing image from preview to avoid CORS
-      const previewImg = document.querySelector("#previewContainer img");
-      const previewVideo = document.querySelector("#previewContainer video");
-
-      if (previewImg) {
-        // Convert existing image to blob
-        const canvas = document.createElement("canvas");
-        canvas.width = previewImg.naturalWidth;
-        canvas.height = previewImg.naturalHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(previewImg, 0, 0);
-
-        blob = await new Promise((resolve) => {
-          canvas.toBlob(resolve, "image/png");
-        });
-      } else if (previewVideo) {
-        // Convert existing video to blob using canvas
-        const canvas = document.createElement("canvas");
-        canvas.width = previewVideo.videoWidth;
-        canvas.height = previewVideo.videoHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(previewVideo, 0, 0);
-
-        blob = await new Promise((resolve) => {
-          canvas.toBlob(resolve, "video/mp4");
-        });
-      } else {
-        // Fallback to fetch
-        const response = await fetch(this.currentPreviewFile.url);
-        blob = await response.blob();
-      }
-
-      const file = new File([blob], this.currentPreviewFile.name, {
-        type: blob.type || this.currentPreviewFile.type,
-      });
-
-      // Share the file
-      if (navigator.share && navigator.canShare({ files: [file] })) {
+      if (navigator.share) {
+        // Prefer native share sheet when available
+        if (navigator.canShare) {
+          // Try to share as file
+          try {
+            const response = await fetch(this.currentPreviewFile.url);
+            const blob = await response.blob();
+            const shareFile = new File([blob], this.currentPreviewFile.name, {
+              type: blob.type || "",
+            });
+            if (navigator.canShare({ files: [shareFile] })) {
+              await navigator.share({
+                title: this.currentPreviewFile.name,
+                text: `Compartido desde PCU Media - ${this.currentPreviewFile.name}`,
+                files: [shareFile],
+              });
+              return;
+            }
+          } catch (_) {
+            // ignore and fallback to URL share
+          }
+        }
+        // Fallback: share URL/text (works when canShare is missing)
         await navigator.share({
           title: this.currentPreviewFile.name,
-          files: [file],
+          text: `Compartido desde PCU Media - ${this.currentPreviewFile.name}`,
+          url: this.currentPreviewFile.url,
         });
+      } else {
+        // No Web Share API: fallback to download
+        this.downloadFile();
       }
     } catch (error) {
-      console.log("Share failed:", error);
+      void 0;
+      // Fallback to download
+      this.downloadFile();
     }
   }
 
@@ -2068,30 +1917,20 @@ class PCUMedia {
   openUploadModal() {
     const modal = document.getElementById("uploadModal");
     modal.classList.add("active");
-    // Only lock body scroll on desktop; on mobile the dialog itself scrolls
-    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
 
     this.populateUploadFolderSelect();
     this.setPendingUploadFiles([], false);
 
     const uploadFolderSelect = document.getElementById("uploadFolderSelect");
     const initialDest = this.currentPath || "";
-    if (initialDest && uploadFolderSelect) {
-      // Try to set value; it may not exist yet if folders are loading
+    if (initialDest) {
       uploadFolderSelect.value = initialDest;
-      // If value didn't stick (option not present), add it temporarily
-      if (uploadFolderSelect.value !== initialDest) {
-        const opt = document.createElement("option");
-        opt.value = initialDest;
-        opt.textContent = "/" + initialDest;
-        uploadFolderSelect.appendChild(opt);
-        uploadFolderSelect.value = initialDest;
-      }
-    }
+    } // else keep placeholder selected
     const folderSelectTileLabel = document.getElementById(
       "folderSelectTileLabel",
     );
-    if (folderSelectTileLabel && uploadFolderSelect)
+    if (folderSelectTileLabel)
       folderSelectTileLabel.textContent = uploadFolderSelect.value
         ? `/${uploadFolderSelect.value}`
         : "Selecciona carpeta";
@@ -2099,7 +1938,7 @@ class PCUMedia {
     const uploadConfirmBtn = document.getElementById("uploadConfirmBtn");
     if (uploadConfirmBtn) {
       uploadConfirmBtn.disabled = true;
-      uploadConfirmBtn.textContent = "Subir Archivos";
+      uploadConfirmBtn.textContent = "Subir";
     }
   }
 
@@ -2107,7 +1946,6 @@ class PCUMedia {
     const modal = document.getElementById("uploadModal");
     modal.classList.remove("active");
     document.body.style.overflow = "";
-    this.closeActionMenu();
     this.setPendingUploadFiles([]);
 
     const uploadFileInput = document.getElementById("uploadFileInput");
@@ -2122,7 +1960,7 @@ class PCUMedia {
     const modal = document.getElementById("folderModal");
     if (!modal) return;
     modal.classList.add("active");
-    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
 
     this.populateFolderParentSelect();
     const parent = document.getElementById("folderParentSelect");
@@ -2147,7 +1985,7 @@ class PCUMedia {
     if (!modal) return;
     this.fileToMove = file;
     modal.classList.add("active");
-    if (window.innerWidth >= 768) document.body.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
     this.populateMoveFolderSelect();
     const select = document.getElementById("moveFolderSelect");
     if (select) {
@@ -2347,23 +2185,40 @@ class PCUMedia {
     const pad = 12 + depth * 18;
 
     wrap.innerHTML = `
-      <button type="button" class="home-folder__row" style="padding-left: ${pad}px">
+      <button type="button" class="home-folder__row" aria-expanded="${!isCollapsed}" style="padding-left: ${pad}px">
         <span class="home-folder__icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
           </svg>
         </span>
         <span class="home-folder__name">${this.escapeHtml(node.name)}</span>
-        <svg class="home-folder__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="margin-left:auto;opacity:0.5;flex-shrink:0"><path d="M9 18l6-6-6-6"/></svg>
+        <span class="home-folder__meta"></span>
       </button>
+      <div class="home-folder__body" style="display: ${isCollapsed ? "none" : "block"}">
+        <div class="home-folder__children"></div>
+        <div class="home-folder__files"></div>
+      </div>
     `;
 
     const row = wrap.querySelector(".home-folder__row");
+    const body = wrap.querySelector(".home-folder__body");
+    const meta = wrap.querySelector(".home-folder__meta");
+    const childrenEl = wrap.querySelector(".home-folder__children");
+    const filesEl = wrap.querySelector(".home-folder__files");
 
-    row.addEventListener("click", async (e) => {
-      // Un click: navegar directamente a la carpeta
-      e.stopPropagation();
-      await this.navigateToFolder(node.path);
+    row.addEventListener("click", async () => {
+      // En Inicio: NO entrar; solo expandir/colapsar acordeón
+      const collapsed = this.homeCollapsed.has(node.path);
+      if (collapsed) this.homeCollapsed.delete(node.path);
+      else this.homeCollapsed.add(node.path);
+
+      const nowCollapsed = this.homeCollapsed.has(node.path);
+      body.style.display = nowCollapsed ? "none" : "block";
+      row.setAttribute("aria-expanded", String(!nowCollapsed));
+
+      if (!nowCollapsed) {
+        await this.renderHomeFolderBody(node, filesEl, childrenEl, meta, depth);
+      }
     });
 
     // Abrir menú contextual con clic derecho en desktop
@@ -2373,29 +2228,26 @@ class PCUMedia {
       this.openFolderMenu(node, row);
     });
 
-    // Tap prolongado en móvil para abrir menú contextual - passive so click still fires
+    // Tap prolongado en móvil para abrir menú contextual
     let lpTimer = null;
-    let lpFired = false;
     const startLP = (e) => {
-      lpFired = false;
+      try {
+        if (e && e.preventDefault) e.preventDefault();
+      } catch {}
       lpTimer = window.setTimeout(() => {
-        lpFired = true;
         this.openFolderMenu(node, row);
-      }, 600);
+      }, 550);
     };
     const cancelLP = () => {
       if (lpTimer) window.clearTimeout(lpTimer);
       lpTimer = null;
     };
-    row.addEventListener("touchstart", startLP, { passive: true });
-    row.addEventListener("touchend", (e) => {
-      cancelLP();
-      if (lpFired) {
-        e.preventDefault();
-        lpFired = false;
-      }
-    });
-    row.addEventListener("touchmove", cancelLP, { passive: true });
+    row.addEventListener("touchstart", startLP, { passive: false });
+    row.addEventListener("touchend", cancelLP);
+    row.addEventListener("touchmove", cancelLP);
+
+    // Siempre cargar metadatos (conteos) y contenido, aunque el cuerpo esté oculto si está colapsado
+    this.renderHomeFolderBody(node, filesEl, childrenEl, meta, depth);
 
     return wrap;
   }
@@ -2556,7 +2408,9 @@ class PCUMedia {
     } catch {}
 
     const incoming = Array.from(fileList || []).filter((f) => {
-      return f && f.name; // Accept all file types
+      return (
+        f.type && (f.type.startsWith("image/") || f.type.startsWith("video/"))
+      );
     });
 
     let files;
@@ -2617,16 +2471,9 @@ class PCUMedia {
       const parts = this.splitFileName(f.name);
       const url = this.pendingUploadObjectUrls[i];
       const isImg = (f.type || "").startsWith("image/");
-      const isVid = (f.type || "").startsWith("video/");
-      const ext = parts.ext.replace(".", "").toUpperCase() || "FILE";
-      let mediaHtml;
-      if (isImg) {
-        mediaHtml = `<img class="selected-file-thumb" src="${url}" alt="${this.escapeHtml(parts.base)}" style="width:100%;height:100%;object-fit:contain;object-position:center" />`;
-      } else if (isVid) {
-        mediaHtml = `<video class="selected-file-thumb" src="${url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
-      } else {
-        mediaHtml = `<div class="selected-file-doc-thumb"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="doc-ext">${this.escapeHtml(ext)}</span></div>`;
-      }
+      const mediaHtml = isImg
+        ? `<img class="selected-file-thumb" src="${url}" alt="${this.escapeHtml(parts.base)}" style="width:100%;height:100%;object-fit:contain;object-position:center" />`
+        : `<video class="selected-file-thumb" src="${url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
       const titleVal = this.escapeHtml(
         this.pendingUploadNames[i] || parts.base,
       );
@@ -2648,14 +2495,14 @@ class PCUMedia {
         thumbwrap.style.cursor = "pointer";
         thumbwrap.addEventListener("click", (e) => {
           e.stopPropagation();
-          const fileType = isVid ? "video" : isImg ? "image" : "document";
+          const isVideo = (f.type || "").startsWith("video/");
           const previewFile = {
             name: f.name,
             url: url,
             size: f.size || 0,
             date: new Date(),
             path: "",
-            type: fileType,
+            type: isVideo ? "video" : "image",
           };
           this.openPreview(previewFile);
         });
@@ -2695,75 +2542,6 @@ class PCUMedia {
     host.appendChild(list);
   }
 
-  // Mostrar tarjetas de carga en la galería mientras se suben archivos
-  _showUploadingState(count, dest) {
-    const galleryGrid = document.getElementById("galleryGrid");
-    const homeAccordion = document.getElementById("homeAccordion");
-    const emptyState = document.getElementById("emptyState");
-
-    if (!galleryGrid) return;
-
-    // Mostrar galería (ocultar acordeón home y empty state)
-    if (homeAccordion) homeAccordion.style.display = "none";
-    if (emptyState) emptyState.style.display = "none";
-    galleryGrid.style.display = "block";
-
-    // Crear sección de carga
-    const section = document.createElement("div");
-    section.className = "home-section upload-loading-section";
-    section.id = "uploadLoadingSection";
-
-    const header = document.createElement("div");
-    header.className = "home-section__header is-static";
-    header.innerHTML = `
-      <span class="upload-spinner" aria-hidden="true"></span>
-      <span class="home-section__title">Subiendo ${count} archivo(s)...</span>
-    `;
-
-    const body = document.createElement("div");
-    body.className = "home-section__body";
-    body.style.display = "block";
-
-    const grid = document.createElement("div");
-    grid.className = "home-section__grid";
-
-    for (var k = 0; k < count; k++) {
-      const card = document.createElement("div");
-      card.className = "gallery-item upload-placeholder";
-      card.innerHTML = `<div class="upload-placeholder__shimmer"></div><div class="upload-placeholder__icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4"><path d="M12 16V3"/><path d="M7 8l5-5 5 5"/><rect x="3" y="16" width="18" height="5" rx="2"/></svg></div>`;
-      grid.appendChild(card);
-    }
-
-    body.appendChild(grid);
-    section.appendChild(header);
-    section.appendChild(body);
-
-    galleryGrid.innerHTML = "";
-    galleryGrid.appendChild(section);
-  }
-
-  // Esperar a que Firebase esté listo (máx 5 segundos)
-  _waitForFirebase() {
-    return new Promise((resolve) => {
-      if (window.fbReady !== undefined) {
-        resolve(!!window.fbReady);
-        return;
-      }
-      var timeout = setTimeout(function () {
-        resolve(false);
-      }, 5000);
-      window.addEventListener(
-        "firebase-ready",
-        function handler() {
-          clearTimeout(timeout);
-          window.removeEventListener("firebase-ready", handler);
-          resolve(!!window.fbReady);
-        },
-        { once: true },
-      );
-    });
-  }
-
   async confirmUpload() {
     const uploadFolderSelect = document.getElementById("uploadFolderSelect");
     let dest = (uploadFolderSelect && uploadFolderSelect.value) || "";
@@ -2781,21 +2559,17 @@ class PCUMedia {
     // Cerrar modal de inmediato
     this.closeUploadModal();
 
-    // Navegar a la carpeta destino y mostrar estado de carga
+    // Navegar a la carpeta destino
     if ((dest || "") !== (this.currentPath || "")) {
       this.currentPath = dest || "";
       this.updateBreadcrumbs();
       this.renderFolderTree();
       this.updateFolderToolbar();
-      if (window.innerWidth < 980) this.toggleSidebar(false);
     }
-    this._showUploadingState(fileCount, dest);
 
     try {
-      // Esperar a que Firebase esté listo
-      var fbAvailable = await this._waitForFirebase();
       var useClientUpload = !!(
-        fbAvailable &&
+        window.fbReady &&
         window.fbUploadBytes &&
         window.fbStorage &&
         window.fbRef &&
@@ -2803,7 +2577,7 @@ class PCUMedia {
       );
 
       if (useClientUpload) {
-        // RUTA A: Subida directa a Firebase Storage desde el navegador (sin límite de tamaño)
+        // RUTA A: Subida directa a Firebase Storage desde el navegador
         for (var i = 0; i < fileCount; i++) {
           var f = filesToUpload[i];
           var parts = this.splitFileName(f.name);
@@ -2818,7 +2592,6 @@ class PCUMedia {
           });
           var downloadURL = await window.fbGetDownloadURL(snapshot.ref);
 
-          // Registrar en Firestore via API
           var regRes = await fetch("/api/register-file", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2835,16 +2608,13 @@ class PCUMedia {
             var regData = await regRes.json().catch(function () {
               return {};
             });
-            throw new Error(
-              regData.error ||
-                "Error registrando archivo (" + regRes.status + ")",
-            );
+            throw new Error(regData.error || "Error registrando archivo");
           }
 
           this.setFileMeta(filePath, { description: descsToUpload[i] || "" });
         }
       } else {
-        // RUTA B: Fallback - subir via API backend (límite 4.5MB por Vercel)
+        // RUTA B: Fallback - subir via API backend
         var form = new FormData();
         for (var j = 0; j < fileCount; j++) {
           var ff = filesToUpload[j];
@@ -2870,10 +2640,10 @@ class PCUMedia {
         }
       }
 
-      // Navegar a la carpeta destino y recargar archivos
+      // Refrescar galeria con los archivos reales
       await this.refreshFolders();
       this.homeFolderFiles.delete(dest || "");
-      await this.navigateToFolder(dest || "");
+      await this.loadFiles();
 
       this.showToast({
         title: "Listo",
@@ -2886,9 +2656,8 @@ class PCUMedia {
         message: e && e.message ? e.message : "Error subiendo archivos",
         variant: "error",
       });
-      // Refrescar de todos modos
       try {
-        await this.navigateToFolder(dest || "");
+        await this.loadFiles();
       } catch (ignored) {}
     }
   }

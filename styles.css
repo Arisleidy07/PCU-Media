@@ -228,8 +228,6 @@ body {
   gap: 8px;
   margin-bottom: 4px;
   color: var(--text);
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
 }
 
 /* Ensure left cluster grows so the menu button stays to the right */
@@ -329,12 +327,10 @@ body {
 
 /* Hamburger icon button */
 .icon-btn {
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
   border-radius: 12px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   background: linear-gradient(
@@ -346,7 +342,6 @@ body {
   box-shadow: 0 4px 16px rgba(2, 6, 23, 0.16);
   cursor: pointer;
   transition: var(--transition);
-  -webkit-tap-highlight-color: transparent;
 }
 .icon-btn:hover {
   transform: translateY(-1px);
@@ -355,10 +350,6 @@ body {
 .icon-btn:focus-visible {
   outline: 2px solid rgba(99, 102, 241, 0.6);
   outline-offset: 2px;
-}
-.icon-btn svg {
-  display: block;
-  flex-shrink: 0;
 }
 
 /* Header Home button */
@@ -371,6 +362,29 @@ body {
 }
 .header-left .tab-btn:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: linear-gradient(
+    180deg,
+    rgba(30, 41, 59, 0.4),
+    rgba(15, 23, 42, 0.4)
+  );
+  color: var(--text);
+  box-shadow: 0 4px 16px rgba(2, 6, 23, 0.16);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.icon-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .breadcrumbs {
@@ -778,8 +792,6 @@ body {
   align-items: center;
   gap: 12px;
   transition: var(--transition);
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
 }
 
 .home-folder__row:hover {
@@ -955,14 +967,15 @@ body {
 }
 
 .gallery-item {
-  position: relative;
-  aspect-ratio: 16/9;
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  cursor: pointer;
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  aspect-ratio: 1;
 }
 
 .gallery-item:hover {
@@ -978,57 +991,6 @@ body {
   object-fit: contain;
   object-position: center;
   background: #000;
-}
-
-/* Document card styles */
-.gallery-item .doc-preview {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: rgba(99, 102, 241, 0.08);
-  color: var(--text);
-}
-
-.gallery-item .doc-ext {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--accent);
-  background: rgba(99, 102, 241, 0.15);
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
-.gallery-item .doc-indicator {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(99, 102, 241, 0.75);
-  color: white;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-/* Document preview in modal */
-.doc-preview-modal {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--text);
-  text-align: center;
-  padding: 24px;
 }
 
 .gallery-item .video-indicator {
@@ -1055,21 +1017,20 @@ body {
   right: 0;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.85),
-    rgba(0, 0, 0, 0.4),
+    rgba(0, 0, 0, 0.72),
+    rgba(0, 0, 0, 0.12),
     transparent
   );
   color: white;
-  padding: 24px 12px 10px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 500;
   opacity: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   transition: var(--transition);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.gallery-item:hover .file-name {
+  opacity: 1;
 }
 
 /* Empty State */
@@ -1129,8 +1090,8 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  max-width: 95vw;
-  height: 85vh;
+  max-width: 90vw;
+  height: 80vh;
   max-height: 90vh;
   display: flex;
   box-shadow: var(--shadow-lg);
@@ -1157,14 +1118,14 @@ body {
 }
 
 .preview-media {
-  flex: 3;
+  flex: 1;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #000;
-  min-width: 600px;
-  min-height: 400px;
+  min-width: 400px;
+  min-height: 300px;
   padding: 10px;
 }
 
@@ -1190,13 +1151,6 @@ body {
   max-height: 100%;
   object-fit: contain;
   object-position: center;
-}
-
-.preview-info {
-  width: 280px;
-  padding: 20px;
-  border-left: 1px solid var(--border);
-  overflow-y: auto;
 }
 
 /* Create Folder Modal */
@@ -1321,11 +1275,9 @@ body {
 }
 
 .preview-info {
-  width: 100%;
-  border-top: 1px solid var(--border);
-  padding: 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  /* Normal flow element */
+  width: 320px;
+  padding: 24px;
+  border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   color: var(--text);
@@ -1824,29 +1776,6 @@ body {
   background: #000;
 }
 
-.selected-file-doc-thumb {
-  width: 100%;
-  height: 100%;
-  min-height: 120px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: rgba(99, 102, 241, 0.08);
-  color: var(--text);
-}
-
-.selected-file-doc-thumb .doc-ext {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--accent);
-  background: rgba(99, 102, 241, 0.18);
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
 .selected-file-remove {
   position: absolute;
   top: 8px;
@@ -2148,150 +2077,50 @@ body {
 }
 
 @media (max-width: 768px) {
-  /* Mobile app behavior - fixed width, no zoom, no horizontal scroll */
-  html,
-  body {
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    height: auto !important;
-    /* Prevent pinch zoom */
-    touch-action: pan-y;
-    /* No horizontal movement */
-    position: relative;
-    max-width: 100vw;
-    min-width: 100vw;
-  }
-
-  /* Ensure ALL containers respect mobile width */
-  * {
-    box-sizing: border-box;
-  }
-
-  #app,
-  .main-content,
-  .gallery-container,
-  .sidebar,
-  .content-area,
-  .preview-modal,
-  .upload-modal,
-  .folder-modal,
-  .move-modal {
-    max-width: 100vw !important;
-    min-width: 100vw !important;
-    overflow-x: hidden !important;
-    box-sizing: border-box;
-  }
-
   .gallery-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
-    padding: 0 8px;
   }
 
-  /* Preview: Final mobile layout - image at top, content adjusts to fit */
+  /* Preview: full-screen bottom sheet on mobile */
   .preview-modal.active {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1000;
-    background: var(--bg);
-    /* Allow modal to scroll if needed, but content should fit naturally */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    max-width: 100vw;
-    min-width: 100vw;
+    align-items: flex-end;
   }
 
   .preview-content {
+    flex-direction: column;
     width: 100%;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    overflow: visible;
-    display: block;
-    padding: 0;
-    margin: 0;
-    /* Content starts at very top */
-    position: relative;
-    top: 0;
-    /* Container adjusts to content - no fixed height */
-    min-height: auto;
-    height: auto;
     max-width: 100vw;
+    height: 92dvh;
+    max-height: 92dvh;
+    border-radius: 20px 20px 0 0;
+    overflow: hidden;
   }
 
   .preview-media {
-    width: 100%;
-    background: transparent;
-    cursor: pointer;
-    position: relative;
-    display: block;
-    margin: 0;
-    padding: 0;
-    /* Image at very top touching border - no background */
-    max-width: 100vw;
+    min-width: auto;
+    min-height: 200px;
+    max-height: 50dvh;
+    flex: 0 0 auto;
   }
 
   .preview-info {
     width: 100%;
-    background: var(--bg);
-    /* Normal spacing below image - 12px */
-    padding: 12px 8px 8px 8px;
-    display: block;
-    margin: 0;
-    border-top: none;
-    /* Download button close to content, minimal space below */
-    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
-    max-width: 100vw;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
   }
 
   .preview-close {
-    position: fixed;
-    top: env(safe-area-inset-top, 12px);
-    left: 12px;
-    width: 36px;
-    height: 36px;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: none;
-    border-radius: 50%;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    z-index: 2001;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Media sizing - natural aspect ratio, no distortion */
-  #previewContainer {
-    width: 100%;
-    padding: 0;
-    margin: 0;
-  }
-
-  #previewContainer img,
-  #previewContainer video {
-    width: 100%;
-    height: auto;
-    display: block;
-    margin: 0;
-    /* Let images show at natural size without any object-fit distortion */
-  }
-
-  #previewContainer iframe {
-    width: 100%;
-    height: 50vh;
-    min-height: 300px;
-    border: none;
-    border-radius: 6px;
-    background: white;
-    margin: 0;
+    left: auto;
+    right: 12px;
+    top: 12px;
+    width: 44px;
+    height: 44px;
   }
 
   /* Item action buttons - bigger touch targets */
@@ -2536,97 +2365,6 @@ body {
 
   #app {
     position: relative;
-  }
-}
-
-/* =============================================
-   UPLOAD LOADING STATE
-   ============================================= */
-
-/* Spinning upload indicator in section header */
-.upload-spinner {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(99, 102, 241, 0.25);
-  border-top-color: rgba(99, 102, 241, 0.9);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Upload loading section header style */
-.upload-loading-section .home-section__header {
-  border-color: rgba(99, 102, 241, 0.3);
-  background: rgba(99, 102, 241, 0.06);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Placeholder card while uploading */
-.upload-placeholder {
-  position: relative;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: default;
-  pointer-events: none;
-}
-
-.upload-placeholder:hover {
-  transform: none;
-  border-color: rgba(99, 102, 241, 0.2);
-  box-shadow: var(--shadow-sm);
-}
-
-.upload-placeholder__shimmer {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(99, 102, 241, 0.08) 50%,
-    transparent 70%
-  );
-  background-size: 200% 100%;
-  animation: shimmer-slide 1.4s ease-in-out infinite;
-}
-
-@keyframes shimmer-slide {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-.upload-placeholder__icon {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: pulse-opacity 1.4s ease-in-out infinite;
-}
-
-@keyframes pulse-opacity {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.7;
   }
 }
 

@@ -2,10 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PCU Media - PlayCenter Universal</title>
     <link rel="icon" type="image/png" href="salta.png" />
     <link rel="stylesheet" href="styles.css" />
@@ -275,7 +272,7 @@
             type="file"
             id="uploadFileInput"
             multiple
-            accept="*/*"
+            accept="image/*,video/*"
             style="display: none"
           />
           <input
@@ -283,7 +280,7 @@
             id="uploadCameraInput"
             multiple
             accept="image/*,video/*"
-            capture="environment"
+            capture
             style="display: none"
           />
           <input
@@ -513,6 +510,11 @@
 
           <div id="previewInfo" class="preview-info">
             <h3 id="previewFileName"></h3>
+            <div class="file-details">
+              <p><strong>Ruta:</strong> <span id="previewFilePath"></span></p>
+              <p><strong>Fecha:</strong> <span id="previewFileDate"></span></p>
+              <p><strong>Tamaño:</strong> <span id="previewFileSize"></span></p>
+            </div>
 
             <div id="previewDescBlock" class="preview-desc">
               <p id="previewDescText"></p>
