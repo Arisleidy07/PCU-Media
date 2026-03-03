@@ -2002,9 +2002,16 @@ class PCUMedia {
           canvas.toBlob(resolve, "image/png");
         });
       } else if (previewVideo) {
-        // For videos, try direct fetch
-        const response = await fetch(this.currentPreviewFile.url);
-        blob = await response.blob();
+        // Convert existing video to blob using canvas
+        const canvas = document.createElement("canvas");
+        canvas.width = previewVideo.videoWidth;
+        canvas.height = previewVideo.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(previewVideo, 0, 0);
+
+        blob = await new Promise((resolve) => {
+          canvas.toBlob(resolve, "video/mp4");
+        });
       } else {
         // Fallback to fetch
         const response = await fetch(this.currentPreviewFile.url);
