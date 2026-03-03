@@ -1129,8 +1129,8 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  max-width: 90vw;
-  height: 80vh;
+  max-width: 95vw;
+  height: 85vh;
   max-height: 90vh;
   display: flex;
   box-shadow: var(--shadow-lg);
@@ -1157,14 +1157,14 @@ body {
 }
 
 .preview-media {
-  flex: 1;
+  flex: 3;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #000;
-  min-width: 400px;
-  min-height: 300px;
+  min-width: 600px;
+  min-height: 400px;
   padding: 10px;
 }
 
@@ -1193,8 +1193,8 @@ body {
 }
 
 .preview-info {
-  width: 320px;
-  padding: 24px;
+  width: 280px;
+  padding: 20px;
   border-left: 1px solid var(--border);
   overflow-y: auto;
 }
