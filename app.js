@@ -1367,11 +1367,15 @@ class PCUMedia {
       });
     }
 
+    // Media container - siempre arriba
+    const mediaContainer = document.createElement("div");
+    mediaContainer.className = "media-container";
+
     const mediaElement =
       file.type === "video"
-        ? `<video src="${file.url}" autoplay muted loop playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`
+        ? `<video src="${file.url}" autoplay muted loop playsinline preload="metadata"></video>`
         : file.type === "image"
-          ? `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center">`
+          ? `<img src="${file.url}" alt="${this.escapeHtml(file.name)}">`
           : `<div class="doc-preview">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -1380,60 +1384,127 @@ class PCUMedia {
             <span class="doc-ext">${this.escapeHtml((file.name || "").split(".").pop().toUpperCase() || "FILE")}</span>
           </div>`;
 
+    mediaContainer.innerHTML = mediaElement;
+
+    // Video indicator
     const videoIndicator =
       file.type === "video"
         ? `<div class="video-indicator">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                Video
-               </div>`
-        : file.type === "image" || file.type === "document"
-          ? ""
-          : `<div class="doc-indicator">${this.escapeHtml((file.name || "").split(".").pop().toUpperCase() || "FILE")}</div>`;
-
-    const fileNameHtml =
-      file.type === "video"
-        ? ""
-        : `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
-
-    const actionsHtml = `
-      <div class="item-actions">
-        <button class="item-actions__btn" type="button" aria-label="Editar o gestionar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="5" r="1"></circle>
-            <circle cx="12" cy="12" r="1"></circle>
-            <circle cx="12" cy="19" r="1"></circle>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
-        </button>
-      </div>`;
+          Video
+        </div>`
+        : "";
 
-    div.innerHTML = `${mediaElement}${videoIndicator}${fileNameHtml}${actionsHtml}`;
+    if (videoIndicator) {
+      mediaContainer.insertAdjacentHTML("beforeend", videoIndicator);
+    }
 
-    // Make entire card clickable
+    // Document indicator
+    const docIndicator =
+      file.type !== "image" && file.type !== "video"
+        ? `<div class="doc-indicator">${this.escapeHtml((file.name || "").split(".").pop().toUpperCase() || "FILE")}</div>`
+        : "";
+
+    if (docIndicator) {
+      mediaContainer.insertAdjacentHTML("beforeend", docIndicator);
+    }
+
+    // Info container - siempre debajo
+    const infoContainer = document.createElement("div");
+    infoContainer.className = "info-container";
+
+    const fileName =
+      file.type !== "video"
+        ? `<div class="file-name">${this.escapeHtml(file.name)}</div>`
+        : "";
+
+    infoContainer.innerHTML = fileName;
+
+    // Actions container - siempre abajo
+    const actionsContainer = document.createElement("div");
+    actionsContainer.className = "actions-container";
+    actionsContainer.innerHTML = `
+      <button class="action-btn share-btn" type="button" data-file="${this.escapeHtml(file.path || "")}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="18" cy="5" r="3"></circle>
+          <circle cx="6" cy="12" r="3"></circle>
+          <circle cx="18" cy="19" r="3"></circle>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+        </svg>
+        Compartir
+      </button>
+      <button class="action-btn download-btn" type="button" data-file="${this.escapeHtml(file.path || "")}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Descargar
+      </button>
+      <button class="action-btn menu-btn" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="5" r="1"></circle>
+          <circle cx="12" cy="12" r="1"></circle>
+          <circle cx="12" cy="19" r="1"></circle>
+        </svg>
+      </button>
+    `;
+
+    // Ensamblar estructura: media > info > actions
+    div.appendChild(mediaContainer);
+    div.appendChild(infoContainer);
+    div.appendChild(actionsContainer);
+
+    // Make entire card clickable para abrir preview
     div.style.cursor = "pointer";
     div.addEventListener("click", (e) => {
       const t = e.target;
-      if (t && t.closest && t.closest(".item-actions")) {
+      // Solo prevenir si el click es directamente en un botón de acción
+      if (
+        t &&
+        t.classList &&
+        (t.classList.contains("action-btn") || t.closest(".action-btn"))
+      ) {
         e.stopPropagation();
         return; // Click en acciones no debe abrir preview
       }
       this.openPreview(file);
     });
 
-    // Acciones por ícono (en todas las vistas)
-    const btn = div.querySelector(".item-actions__btn");
-    if (btn) {
-      btn.addEventListener("click", (e) => {
+    // Event listeners para botones de acción
+    const shareBtn = actionsContainer.querySelector(".share-btn");
+    const downloadBtn = actionsContainer.querySelector(".download-btn");
+    const menuBtn = actionsContainer.querySelector(".menu-btn");
+
+    if (shareBtn) {
+      shareBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.openItemMenu(file, btn);
+        this.shareFile(file);
       });
     }
+
+    if (downloadBtn) {
+      downloadBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.downloadFile(file);
+      });
+    }
+
+    if (menuBtn) {
+      menuBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.openItemMenu(file, menuBtn);
+      });
+    }
+
     // Context menu (right-click)
     div.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const anchor = div.querySelector(".item-actions__btn") || div;
+      const anchor = menuBtn || div;
       this.openItemMenu(file, anchor);
     });
 
@@ -1973,50 +2044,96 @@ class PCUMedia {
     }
   }
 
-  async shareFile() {
-    if (!this.currentPreviewFile) return;
+  async shareFile(file = null) {
+    const targetFile = file || this.currentPreviewFile;
+    if (!targetFile) return;
 
     try {
       if (navigator.share && navigator.canShare) {
-        // Try to share as file
-        const response = await fetch(this.currentPreviewFile.url);
+        // Obtener el archivo como blob
+        const response = await fetch(targetFile.url);
         const blob = await response.blob();
-        const shareFile = new File([blob], this.currentPreviewFile.name, {
-          type:
-            blob.type ||
-            this.currentPreviewFile.type ||
-            "application/octet-stream",
+
+        // Determinar el tipo MIME correcto
+        let mimeType =
+          blob.type || targetFile.type || "application/octet-stream";
+
+        // Para imágenes y videos, asegurar el tipo correcto
+        if (targetFile.type === "image" && !mimeType.startsWith("image/")) {
+          const ext = targetFile.name.split(".").pop().toLowerCase();
+          if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
+          else if (ext === "png") mimeType = "image/png";
+          else if (ext === "gif") mimeType = "image/gif";
+          else if (ext === "webp") mimeType = "image/webp";
+        } else if (
+          targetFile.type === "video" &&
+          !mimeType.startsWith("video/")
+        ) {
+          const ext = targetFile.name.split(".").pop().toLowerCase();
+          if (ext === "mp4") mimeType = "video/mp4";
+          else if (ext === "webm") mimeType = "video/webm";
+          else if (ext === "mov") mimeType = "video/quicktime";
+        } else if (targetFile.type === "document") {
+          const ext = targetFile.name.split(".").pop().toLowerCase();
+          if (ext === "pdf") mimeType = "application/pdf";
+          else if (ext === "doc") mimeType = "application/msword";
+          else if (ext === "docx")
+            mimeType =
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        }
+
+        const shareFile = new File([blob], targetFile.name, {
+          type: mimeType,
         });
 
         if (navigator.canShare({ files: [shareFile] })) {
+          // Compartir el archivo real
           await navigator.share({
-            title: this.currentPreviewFile.name,
+            title: targetFile.name,
             files: [shareFile],
           });
         } else {
-          // Fallback: try to share as blob
-          await navigator.share({
-            title: this.currentPreviewFile.name,
-            text: this.currentPreviewFile.name,
-          });
+          // Fallback para dispositivos que no soportan compartir archivos
+          // Descargar el archivo y mostrar instrucciones
+          this.downloadFile(targetFile);
+          setTimeout(() => {
+            alert(
+              "Archivo descargado. Ahora puedes compartirlo desde tu galería o carpeta de descargas.",
+            );
+          }, 500);
         }
       } else {
-        // No share API available
-        alert("Tu dispositivo no permite compartir archivos directamente.");
+        // No share API available - descargar y mostrar instrucciones
+        this.downloadFile(targetFile);
+        setTimeout(() => {
+          alert(
+            "Archivo descargado. Busca en tu carpeta de descargas para compartirlo.",
+          );
+        }, 500);
       }
     } catch (error) {
       console.error("Error al compartir:", error);
-      // Show user-friendly error
-      alert("No se pudo compartir el archivo. Intenta descargarlo primero.");
+
+      // Si el usuario canceló el compartir, no mostrar error
+      if (error.name !== "AbortError") {
+        // Fallback: descargar y mostrar instrucciones
+        this.downloadFile(targetFile);
+        setTimeout(() => {
+          alert(
+            "No se pudo compartir directamente. El archivo se ha descargado para que lo compartas manualmente.",
+          );
+        }, 500);
+      }
     }
   }
 
-  downloadFile() {
-    if (!this.currentPreviewFile) return;
+  downloadFile(file = null) {
+    const targetFile = file || this.currentPreviewFile;
+    if (!targetFile) return;
     const doDirect = () => {
       const link = document.createElement("a");
-      link.href = this.currentPreviewFile.url;
-      link.download = this.currentPreviewFile.name;
+      link.href = targetFile.url;
+      link.download = targetFile.name;
       link.target = "_blank";
       document.body.appendChild(link);
       link.click();
@@ -2025,13 +2142,13 @@ class PCUMedia {
     // Prefer blob download to enforce save dialog
     (async () => {
       try {
-        const res = await fetch(this.currentPreviewFile.url);
+        const res = await fetch(targetFile.url);
         if (!res.ok) throw new Error("fetch failed");
         const blob = await res.blob();
         const objUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = objUrl;
-        a.download = this.currentPreviewFile.name;
+        a.download = targetFile.name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
