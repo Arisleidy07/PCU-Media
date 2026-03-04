@@ -1799,13 +1799,6 @@ class PCUMedia {
 
     // Set file info
     fileName.textContent = file.name;
-    filePath.textContent = this.currentPath
-      ? `${this.currentPath}/${file.name}`
-      : file.name;
-    fileDate.textContent = (file.date || new Date()).toLocaleDateString(
-      "es-ES",
-    );
-    fileSize.textContent = this.formatFileSize(file.size);
 
     // Set media content
     if (file.type === "video") {
