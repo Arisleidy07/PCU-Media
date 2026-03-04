@@ -1008,6 +1008,7 @@ body {
   gap: 4px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
 }
 
 /* Document card styles */
@@ -1046,6 +1047,7 @@ body {
   letter-spacing: 0.05em;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
 }
 
 /* Document preview in modal */
@@ -1081,6 +1083,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 .gallery-item:hover .file-name {
