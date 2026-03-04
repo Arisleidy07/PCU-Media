@@ -2147,58 +2147,55 @@ body {
     right: 0;
     bottom: 0;
     z-index: 1000;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.9);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
+    display: block;
+    padding: 0;
     box-sizing: border-box;
   }
 
   .preview-content {
-    width: 100%;
-    max-width: 90vw;
+    width: 100vw;
     background: rgba(15, 23, 42, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    display: block;
+    box-shadow: none;
     animation: slideUp 0.3s ease-out;
     margin: 0;
   }
 
   .preview-media {
-    width: 100%;
+    width: 100vw;
     background: transparent;
     display: block;
     margin: 0;
-    padding: 16px;
+    padding: 0;
     overflow: hidden;
+    min-height: 50vh;
   }
 
   .preview-media img,
   .preview-media video {
-    width: 100%;
+    width: 100vw;
     height: auto;
     display: block;
     margin: 0;
     object-fit: contain;
     object-position: center;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.02);
+    max-height: 70vh;
   }
 
   .preview-info {
-    width: 100%;
+    width: 100vw;
     background: rgba(15, 23, 42, 0.95);
-    padding: 16px 20px;
+    padding: 20px;
     display: block;
     margin: 0;
     padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .preview-info h3 {
