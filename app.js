@@ -1844,9 +1844,116 @@ class PCUMedia {
     // Ensure edit UI starts hidden
     this.setPreviewEditMode(false);
 
+    // Add click handler to media area for full-screen view
+    const mediaArea = document.querySelector(".preview-media");
+    if (mediaArea) {
+      // Remove existing listener to avoid duplicates
+      mediaArea.removeEventListener("click", this._mediaClickHandler);
+      this._mediaClickHandler = (e) => {
+        e.stopPropagation();
+        this.openFullScreenMedia(file);
+      };
+      mediaArea.addEventListener("click", this._mediaClickHandler);
+    }
+
     // Show modal
     modal.classList.add("active");
     document.body.style.overflow = "hidden";
+  }
+
+  openFullScreenMedia(file) {
+    // Create full-screen overlay
+    const overlay = document.createElement("div");
+    overlay.className = "fullscreen-media-overlay";
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease-out;
+    `;
+
+    // Create media element
+    let mediaEl;
+    if (file.type === "video") {
+      mediaEl = document.createElement("video");
+      mediaEl.src = file.url;
+      mediaEl.controls = true;
+      mediaEl.autoplay = true;
+      mediaEl.playsinline = true;
+      mediaEl.style.cssText =
+        "max-width:100%; max-height:100%; object-fit:contain; display: block;";
+    } else if (file.type === "image") {
+      mediaEl = document.createElement("img");
+      mediaEl.src = file.url;
+      mediaEl.alt = file.name;
+      mediaEl.style.cssText =
+        "max-width:100%; max-height:100%; object-fit:contain; display: block;";
+    } else {
+      // For documents, just open in new tab
+      window.open(file.url, "_blank");
+      return;
+    }
+
+    // Create close button
+    const closeBtn = document.createElement("button");
+    closeBtn.innerHTML = "✕";
+    closeBtn.style.cssText = `
+      position: fixed;
+      top: env(safe-area-inset-top, 20px);
+      left: 20px;
+      width: 32px;
+      height: 32px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 2001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    `;
+
+    // Add click to close
+    const closeFullscreen = () => {
+      overlay.style.animation = "fadeOut 0.3s ease-out";
+      setTimeout(() => {
+        document.body.removeChild(overlay);
+      }, 300);
+    };
+
+    closeBtn.addEventListener("click", closeFullscreen);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeFullscreen();
+    });
+
+    // Add to DOM
+    overlay.appendChild(mediaEl);
+    overlay.appendChild(closeBtn);
+    document.body.appendChild(overlay);
+
+    // Add fade out animation if not present
+    if (!document.querySelector("#fadeOutStyle")) {
+      const style = document.createElement("style");
+      style.id = "fadeOutStyle";
+      style.textContent = `
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
   }
 
   closePreview() {

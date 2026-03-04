@@ -1148,6 +1148,7 @@ body {
   height: 80vh;
   max-height: 90vh;
   display: flex;
+  flex-direction: column;
   box-shadow: var(--shadow-lg);
   animation: slideUp 0.3s ease-out;
 }
@@ -1173,11 +1174,10 @@ body {
 
 .preview-media {
   flex: 1;
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000;
+  background: transparent;
   min-width: 400px;
   min-height: 300px;
   padding: 10px;
@@ -1185,8 +1185,8 @@ body {
 
 .preview-media img,
 .preview-media video {
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: auto;
   object-fit: contain;
   object-position: center;
 }
@@ -1329,9 +1329,8 @@ body {
 }
 
 .preview-info {
-  width: 320px;
+  width: 100%;
   padding: 24px;
-  border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   color: var(--text);
