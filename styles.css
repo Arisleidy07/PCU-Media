@@ -2150,13 +2150,14 @@ body {
     display: flex;
     align-items: flex-start;
     justify-content: center;
-    padding: 20px;
+    padding: 10px;
     box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   .preview-content {
-    width: 100%;
-    max-width: 95vw;
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
     background: rgba(15, 23, 42, 0.95);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
@@ -2165,6 +2166,7 @@ body {
     box-shadow: var(--shadow-lg);
     animation: slideUp 0.3s ease-out;
     margin-bottom: 40px;
+    box-sizing: border-box;
   }
 
   .preview-media {
@@ -2185,7 +2187,6 @@ body {
     margin: 0;
     object-fit: contain;
     object-position: center;
-    max-height: 70vh;
   }
 
   .preview-info {

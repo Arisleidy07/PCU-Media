@@ -1408,11 +1408,14 @@ class PCUMedia {
         </button>
       </div>`;
 
-    div.innerHTML = `${actionsHtml}${mediaElement}${videoIndicator}${fileNameHtml}`;
+    div.innerHTML = `${mediaElement}${videoIndicator}${fileNameHtml}${actionsHtml}`;
 
+    // Make entire card clickable
+    div.style.cursor = "pointer";
     div.addEventListener("click", (e) => {
       const t = e.target;
       if (t && t.closest && t.closest(".item-actions")) {
+        e.stopPropagation();
         return; // Click en acciones no debe abrir preview
       }
       this.openPreview(file);
@@ -1979,7 +1982,10 @@ class PCUMedia {
         const response = await fetch(this.currentPreviewFile.url);
         const blob = await response.blob();
         const shareFile = new File([blob], this.currentPreviewFile.name, {
-          type: blob.type || "",
+          type:
+            blob.type ||
+            this.currentPreviewFile.type ||
+            "application/octet-stream",
         });
 
         if (navigator.canShare({ files: [shareFile] })) {
@@ -1987,10 +1993,21 @@ class PCUMedia {
             title: this.currentPreviewFile.name,
             files: [shareFile],
           });
+        } else {
+          // Fallback: try to share as blob
+          await navigator.share({
+            title: this.currentPreviewFile.name,
+            text: this.currentPreviewFile.name,
+          });
         }
+      } else {
+        // No share API available
+        alert("Tu dispositivo no permite compartir archivos directamente.");
       }
     } catch (error) {
-      void 0;
+      console.error("Error al compartir:", error);
+      // Show user-friendly error
+      alert("No se pudo compartir el archivo. Intenta descargarlo primero.");
     }
   }
 
