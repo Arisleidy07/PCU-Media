@@ -1874,42 +1874,23 @@ class PCUMedia {
     if (!this.currentPreviewFile) return;
 
     try {
-      if (navigator.share) {
-        // Prefer native share sheet when available
-        if (navigator.canShare) {
-          // Try to share as file
-          try {
-            const response = await fetch(this.currentPreviewFile.url);
-            const blob = await response.blob();
-            const shareFile = new File([blob], this.currentPreviewFile.name, {
-              type: blob.type || "",
-            });
-            if (navigator.canShare({ files: [shareFile] })) {
-              await navigator.share({
-                title: this.currentPreviewFile.name,
-                text: `Compartido desde PCU Media - ${this.currentPreviewFile.name}`,
-                files: [shareFile],
-              });
-              return;
-            }
-          } catch (_) {
-            // ignore and fallback to URL share
-          }
-        }
-        // Fallback: share URL/text (works when canShare is missing)
-        await navigator.share({
-          title: this.currentPreviewFile.name,
-          text: `Compartido desde PCU Media - ${this.currentPreviewFile.name}`,
-          url: this.currentPreviewFile.url,
+      if (navigator.share && navigator.canShare) {
+        // Try to share as file
+        const response = await fetch(this.currentPreviewFile.url);
+        const blob = await response.blob();
+        const shareFile = new File([blob], this.currentPreviewFile.name, {
+          type: blob.type || "",
         });
-      } else {
-        // No Web Share API: fallback to download
-        this.downloadFile();
+
+        if (navigator.canShare({ files: [shareFile] })) {
+          await navigator.share({
+            title: this.currentPreviewFile.name,
+            files: [shareFile],
+          });
+        }
       }
     } catch (error) {
       void 0;
-      // Fallback to download
-      this.downloadFile();
     }
   }
 
