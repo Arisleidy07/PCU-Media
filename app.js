@@ -1458,20 +1458,65 @@ class PCUMedia {
     div.appendChild(infoContainer);
     div.appendChild(actionsContainer);
 
-    // Make entire card clickable para abrir preview
+    // Make entire card clickable para abrir preview - arreglado para móvil
     div.style.cursor = "pointer";
-    div.addEventListener("click", (e) => {
+
+    // Función mejorada para manejar clicks en móvil
+    const handleCardClick = (e) => {
+      console.log("Card clicked", e.target); // Debug
+
       const t = e.target;
-      // Solo prevenir si el click es directamente en un botón de acción
+
+      // Prevenir si el click es en botón de acción o sus hijos
       if (
         t &&
-        t.classList &&
-        (t.classList.contains("action-btn") || t.closest(".action-btn"))
+        (t.classList.contains("action-btn") ||
+          t.closest(".action-btn") ||
+          t.classList.contains("share-btn") ||
+          t.closest(".share-btn") ||
+          t.classList.contains("download-btn") ||
+          t.closest(".download-btn") ||
+          t.classList.contains("menu-btn") ||
+          t.closest(".menu-btn"))
       ) {
+        console.log("Click on action button, ignoring"); // Debug
         e.stopPropagation();
-        return; // Click en acciones no debe abrir preview
+        e.preventDefault();
+        return;
       }
+
+      console.log("Opening preview for:", file.name); // Debug
+      // Abrir preview
       this.openPreview(file);
+    };
+
+    // Event listeners optimizados para móvil
+    div.addEventListener("click", handleCardClick);
+
+    // Touch events para móvil
+    let touchStartTime = 0;
+    div.addEventListener(
+      "touchstart",
+      (e) => {
+        touchStartTime = Date.now();
+      },
+      { passive: true },
+    );
+
+    div.addEventListener("touchend", (e) => {
+      const touchEndTime = Date.now();
+      const touchDuration = touchEndTime - touchStartTime;
+
+      // Solo procesar si es un toque rápido (no scroll)
+      if (touchDuration < 300) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Pequeño delay para asegurar que se procese después del touchend
+        setTimeout(() => {
+          handleCardClick(e);
+        }, 50);
+      }
     });
 
     // Event listeners para botones de acción
@@ -1482,21 +1527,39 @@ class PCUMedia {
     if (shareBtn) {
       shareBtn.addEventListener("click", (e) => {
         e.stopPropagation();
+        e.preventDefault();
         this.shareFile(file);
+      });
+      shareBtn.addEventListener("touchend", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setTimeout(() => this.shareFile(file), 150);
       });
     }
 
     if (downloadBtn) {
       downloadBtn.addEventListener("click", (e) => {
         e.stopPropagation();
+        e.preventDefault();
         this.downloadFile(file);
+      });
+      downloadBtn.addEventListener("touchend", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setTimeout(() => this.downloadFile(file), 150);
       });
     }
 
     if (menuBtn) {
       menuBtn.addEventListener("click", (e) => {
         e.stopPropagation();
+        e.preventDefault();
         this.openItemMenu(file, menuBtn);
+      });
+      menuBtn.addEventListener("touchend", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setTimeout(() => this.openItemMenu(file, menuBtn), 150);
       });
     }
 
@@ -2046,84 +2109,80 @@ class PCUMedia {
 
   async shareFile(file = null) {
     const targetFile = file || this.currentPreviewFile;
-    if (!targetFile) return;
+    if (!targetFile) {
+      alert("No hay archivo para compartir.");
+      return;
+    }
 
     try {
-      if (navigator.share && navigator.canShare) {
-        // Obtener el archivo como blob
-        const response = await fetch(targetFile.url);
-        const blob = await response.blob();
+      // Mostrar indicador de carga
+      const loadingText = document.createElement("div");
+      loadingText.style.cssText =
+        "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:20px;border-radius:10px;z-index:10000;";
+      loadingText.textContent = "Preparando archivo...";
+      document.body.appendChild(loadingText);
 
-        // Determinar el tipo MIME correcto
-        let mimeType =
-          blob.type || targetFile.type || "application/octet-stream";
+      // Obtener el archivo como blob
+      const response = await fetch(targetFile.url);
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      const blob = await response.blob();
 
-        // Para imágenes y videos, asegurar el tipo correcto
-        if (targetFile.type === "image" && !mimeType.startsWith("image/")) {
-          const ext = targetFile.name.split(".").pop().toLowerCase();
-          if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
-          else if (ext === "png") mimeType = "image/png";
-          else if (ext === "gif") mimeType = "image/gif";
-          else if (ext === "webp") mimeType = "image/webp";
-        } else if (
-          targetFile.type === "video" &&
-          !mimeType.startsWith("video/")
-        ) {
-          const ext = targetFile.name.split(".").pop().toLowerCase();
-          if (ext === "mp4") mimeType = "video/mp4";
-          else if (ext === "webm") mimeType = "video/webm";
-          else if (ext === "mov") mimeType = "video/quicktime";
-        } else if (targetFile.type === "document") {
-          const ext = targetFile.name.split(".").pop().toLowerCase();
-          if (ext === "pdf") mimeType = "application/pdf";
-          else if (ext === "doc") mimeType = "application/msword";
-          else if (ext === "docx")
-            mimeType =
-              "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-        }
+      // Determinar el tipo MIME correcto basado en la extensión
+      const ext = targetFile.name.split(".").pop().toLowerCase();
+      let mimeType = blob.type;
 
-        const shareFile = new File([blob], targetFile.name, {
-          type: mimeType,
+      if (!mimeType || mimeType === "application/octet-stream") {
+        const mimeTypes = {
+          jpg: "image/jpeg",
+          jpeg: "image/jpeg",
+          png: "image/png",
+          gif: "image/gif",
+          webp: "image/webp",
+          svg: "image/svg+xml",
+          mp4: "video/mp4",
+          webm: "video/webm",
+          mov: "video/quicktime",
+          pdf: "application/pdf",
+          doc: "application/msword",
+          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        };
+        mimeType = mimeTypes[ext] || "application/octet-stream";
+      }
+
+      // Crear el archivo con el tipo correcto
+      const shareFile = new File([blob], targetFile.name, {
+        type: mimeType,
+      });
+
+      // Quitar indicador de carga
+      document.body.removeChild(loadingText);
+
+      // Abrir el modal nativo de compartir del dispositivo
+      if (navigator.share && navigator.canShare({ files: [shareFile] })) {
+        await navigator.share({
+          files: [shareFile],
         });
-
-        if (navigator.canShare({ files: [shareFile] })) {
-          // Compartir el archivo real
-          await navigator.share({
-            title: targetFile.name,
-            files: [shareFile],
-          });
-        } else {
-          // Fallback para dispositivos que no soportan compartir archivos
-          // Descargar el archivo y mostrar instrucciones
-          this.downloadFile(targetFile);
-          setTimeout(() => {
-            alert(
-              "Archivo descargado. Ahora puedes compartirlo desde tu galería o carpeta de descargas.",
-            );
-          }, 500);
-        }
       } else {
-        // No share API available - descargar y mostrar instrucciones
-        this.downloadFile(targetFile);
-        setTimeout(() => {
-          alert(
-            "Archivo descargado. Busca en tu carpeta de descargas para compartirlo.",
-          );
-        }, 500);
+        // Si no hay soporte, mostrar mensaje claro
+        alert("Tu dispositivo no permite compartir archivos directamente.");
       }
     } catch (error) {
-      console.error("Error al compartir:", error);
+      // Quitar indicador de carga si aún existe
+      const loading = document.querySelector(
+        'div[style*="Preparando archivo"]',
+      );
+      if (loading) document.body.removeChild(loading);
 
-      // Si el usuario canceló el compartir, no mostrar error
-      if (error.name !== "AbortError") {
-        // Fallback: descargar y mostrar instrucciones
-        this.downloadFile(targetFile);
-        setTimeout(() => {
-          alert(
-            "No se pudo compartir directamente. El archivo se ha descargado para que lo compartas manualmente.",
-          );
-        }, 500);
+      // Si el usuario canceló, no mostrar nada
+      if (error.name === "AbortError") {
+        return;
       }
+
+      // Para cualquier otro error, mostrar mensaje simple
+      console.error("Error al compartir:", error);
+      alert("No se pudo compartir el archivo.");
     }
   }
 
