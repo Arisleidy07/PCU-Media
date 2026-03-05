@@ -1102,7 +1102,7 @@ body {
   display: block;
 }
 
-/* Info container - siempre debajo */
+/* Info container - siempre debajo - título visible */
 .gallery-item .info-container {
   padding: 12px;
   flex: 1;
@@ -1110,6 +1110,20 @@ body {
   flex-direction: column;
   gap: 8px;
   min-height: 0;
+}
+
+.gallery-item .file-name {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  margin-bottom: 4px;
 }
 
 /* Actions container - siempre abajo */
@@ -1286,29 +1300,63 @@ body {
     display: block !important;
   }
 
+  /* Arreglar título visible en tarjetas */
+  .gallery-item .info-container {
+    padding: 12px !important;
+    min-height: auto !important;
+    flex: 1 !important;
+  }
+
+  .gallery-item .file-name {
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    color: var(--text) !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-break: break-word !important;
+    margin-bottom: 8px !important;
+  }
+
   .gallery-container {
     padding: 8px;
   }
 
-  .preview-info {
-    padding: 12px;
-    min-height: 20vh;
-    max-height: 30vh;
+  /* Modal móvil - ajustes para pantallas pequeñas */
+  .preview-content {
     overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .preview-media {
+    min-height: 40vh;
+    max-height: 50vh;
+  }
+
+  .preview-info {
+    padding: 16px;
+  }
+
+  .preview-info h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
   }
 
   .preview-actions {
     gap: 8px;
-    flex-shrink: 0;
-    padding-bottom: 16px;
+    padding-bottom: 20px;
   }
 
   .share-btn,
   .download-btn,
   .edit-btn {
-    padding: 12px 16px;
+    padding: 10px 16px;
     font-size: 13px;
     min-height: 44px;
+    flex: 1;
+    min-width: 100px;
   }
 }
 
@@ -1366,7 +1414,7 @@ body {
   }
 }
 
-/* Responsive modal - completamente diferente para móvil según instrucciones */
+/* Responsive modal - un solo contenedor vertical según instrucciones exactas */
 @media (max-width: 768px) {
   .preview-content {
     max-width: 100vw;
@@ -1376,15 +1424,17 @@ body {
     border-radius: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    scroll-behavior: smooth;
   }
 
-  /* Arriba: imagen o archivo completo */
+  /* Arriba: imagen o video - dentro del contenedor sin cortar */
   .preview-media {
     width: 100%;
     min-height: 50vh;
@@ -1393,8 +1443,8 @@ body {
     align-items: center;
     justify-content: center;
     background: #000;
-    overflow: hidden;
     flex-shrink: 0;
+    position: relative;
   }
 
   .preview-media img,
@@ -1403,8 +1453,10 @@ body {
     max-height: 100%;
     width: auto;
     height: auto;
-    object-fit: contain;
-    object-position: center;
+    object-fit: contain !important;
+    object-position: center !important;
+    display: block;
+    margin: 0 auto;
   }
 
   .preview-close {
@@ -1418,36 +1470,42 @@ body {
   /* Debajo: información del archivo */
   .preview-info {
     width: 100%;
-    padding: 16px;
-    min-height: 20vh;
-    max-height: 30vh;
+    padding: 20px;
+    min-height: auto;
     border-left: none;
     border-top: 1px solid var(--border);
-    overflow-y: auto !important;
-    flex-shrink: 0;
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
   }
 
   .preview-info h3 {
-    font-size: 16px;
-    margin-bottom: 12px;
+    font-size: 18px;
+    margin-bottom: 16px;
+    word-break: break-word;
+  }
+
+  .preview-info p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    color: var(--muted);
   }
 
   /* Debajo: botones de acción */
   .preview-actions {
     display: flex;
     gap: 12px;
-    margin-top: 16px;
+    margin-top: 20px;
     flex-wrap: wrap;
     flex-shrink: 0;
-    padding-bottom: 16px;
+    padding-bottom: 24px;
   }
 
   .preview-actions .share-btn,
   .preview-actions .download-btn,
   .preview-actions .edit-btn {
-    padding: 12px 16px;
+    padding: 12px 20px;
     font-size: 14px;
     border-radius: 8px;
     min-height: 44px;
@@ -1455,7 +1513,8 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 120px;
   }
 }
 
