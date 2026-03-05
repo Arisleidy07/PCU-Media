@@ -1054,7 +1054,7 @@ body {
   max-width: 100%;
 }
 
-/* Gallery item base - object-fit: contain forzado */
+/* Gallery item base - arreglado para que las imágenes no se corten */
 .gallery-item {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
@@ -1068,15 +1068,9 @@ body {
   flex-direction: column;
   width: 100%;
   max-width: 100%;
-  /* Arreglar clicks en móvil */
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  touch-action: manipulation;
 }
 
-/* Media container - siempre arriba - object-fit: contain forzado */
+/* Media container - imágenes sin cortar */
 .gallery-item .media-container {
   width: 100%;
   flex-shrink: 0;
@@ -1092,10 +1086,8 @@ body {
 
 .gallery-item .media-container img,
 .gallery-item .media-container video {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
+  width: 100%;
+  height: 100%;
   object-fit: contain !important;
   object-position: center !important;
   background: #000;
@@ -1279,69 +1271,49 @@ body {
   }
 
   .gallery-item .media-container {
-    min-height: 140px !important;
-    max-height: 180px !important;
-    width: 100% !important;
-    overflow: hidden !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: #000 !important;
+    min-height: 140px;
+    max-height: 180px;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
   }
 
   .gallery-item .media-container img,
   .gallery-item .media-container video {
-    max-width: 100% !important;
-    max-height: 100% !important;
-    width: auto !important;
-    height: auto !important;
-    object-fit: contain !important;
-    object-position: center !important;
-    display: block !important;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
   }
 
-  /* Arreglar título visible en tarjetas */
   .gallery-item .info-container {
-    padding: 12px !important;
-    min-height: auto !important;
-    flex: 1 !important;
+    padding: 12px;
+    flex: 1;
   }
 
   .gallery-item .file-name {
-    font-size: 14px !important;
-    line-height: 1.4 !important;
-    color: var(--text) !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    word-break: break-word !important;
-    margin-bottom: 8px !important;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--text);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    margin-bottom: 8px;
   }
 
   .gallery-container {
     padding: 8px;
   }
 
-  /* Modal móvil - ajustes para pantallas pequeñas */
-  .preview-content {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-  }
-
-  .preview-media {
-    min-height: 40vh;
-    max-height: 50vh;
-  }
-
   .preview-info {
     padding: 16px;
-  }
-
-  .preview-info h3 {
-    font-size: 16px;
-    margin-bottom: 12px;
   }
 
   .preview-actions {
@@ -1424,17 +1396,15 @@ body {
     border-radius: 0;
     display: flex;
     flex-direction: column;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
+    overflow-y: auto;
+    overflow-x: hidden;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    scroll-behavior: smooth;
   }
 
-  /* Arriba: imagen o video - dentro del contenedor sin cortar */
   .preview-media {
     width: 100%;
     min-height: 50vh;
@@ -1444,7 +1414,6 @@ body {
     justify-content: center;
     background: #000;
     flex-shrink: 0;
-    position: relative;
   }
 
   .preview-media img,
@@ -1453,10 +1422,9 @@ body {
     max-height: 100%;
     width: auto;
     height: auto;
-    object-fit: contain !important;
-    object-position: center !important;
+    object-fit: contain;
+    object-position: center;
     display: block;
-    margin: 0 auto;
   }
 
   .preview-close {
@@ -1467,11 +1435,9 @@ body {
     z-index: 100;
   }
 
-  /* Debajo: información del archivo */
   .preview-info {
     width: 100%;
     padding: 20px;
-    min-height: auto;
     border-left: none;
     border-top: 1px solid var(--border);
     display: flex;
@@ -1485,14 +1451,6 @@ body {
     word-break: break-word;
   }
 
-  .preview-info p {
-    font-size: 14px;
-    line-height: 1.5;
-    margin-bottom: 8px;
-    color: var(--muted);
-  }
-
-  /* Debajo: botones de acción */
   .preview-actions {
     display: flex;
     gap: 12px;
