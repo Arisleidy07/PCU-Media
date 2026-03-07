@@ -76,7 +76,7 @@ body {
 }
 
 .gallery-item {
-  aspect-ratio: 16/9; /* más cinematográfico */
+  /* aspect-ratio: 16/9;  REMOVIDO - cortaba imágenes */
   border: 1px solid var(--border);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
 }
