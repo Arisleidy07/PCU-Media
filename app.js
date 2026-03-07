@@ -1937,16 +1937,16 @@ class PCUMedia {
     // Set file info
     fileName.textContent = file.name;
 
-    // Set media content
+    // Set media content - SIN ESTILOS INLINE
     if (file.type === "video") {
-      container.innerHTML = `<video src="${file.url}" controls autoplay muted loop playsinline style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
+      container.innerHTML = `<video src="${file.url}" controls autoplay muted loop playsinline></video>`;
     } else if (file.type === "image") {
-      container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="width:100%;height:100%;object-fit:contain;object-position:center">`;
+      container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}">`;
     } else {
       // Document / PDF — show iframe for PDF, download link for others
       const ext = (file.name || "").split(".").pop().toLowerCase();
       if (ext === "pdf") {
-        container.innerHTML = `<iframe src="${file.url}" style="width:100%;height:100%;border:none;border-radius:8px;" title="${this.escapeHtml(file.name)}"></iframe>`;
+        container.innerHTML = `<iframe src="${file.url}" title="${this.escapeHtml(file.name)}"></iframe>`;
       } else {
         container.innerHTML = `<div class="doc-preview-modal">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6">
