@@ -41,19 +41,19 @@ body {
   margin: 0 4px;
 }
 
-/* Cards and grid aesthetics */
+/* Cards and grid aesthetics - tarjetas más cuadradas */
 .gallery-grid,
 .home-files-grid,
 .home-section__grid {
   gap: 20px;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
 @media (min-width: 1600px) {
   .gallery-grid,
   .home-files-grid,
   .home-section__grid {
-    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   }
 }
 
@@ -91,24 +91,30 @@ body {
   background: #000;
 }
 
-/* Filename - abajo de la imagen, sin fondo negro */
+/* Filename - encima de la imagen, sin fondo */
 .gallery-item .info-container {
-  padding: 12px;
-  background: transparent;
-  color: var(--text);
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  color: white;
+  z-index: 10;
 }
 
 .gallery-item .file-name {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  line-height: 1.4;
-  color: var(--text);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  line-height: 1.2;
+  color: white;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
 }
 
 /* Item actions (pencil icon) */
