@@ -1686,7 +1686,7 @@ body {
       flex-direction: column;
       flex-shrink: 0;
       margin: 0;
-      overflow: visible;
+      overflow-y: auto;
       min-height: 0;
       background: transparent;
     }
@@ -1695,7 +1695,6 @@ body {
       font-size: 16px;
       margin-bottom: 12px;
       word-break: break-word;
-      overflow: visible;
       color: white;
     }
 
@@ -1774,7 +1773,6 @@ body {
       flex-wrap: wrap;
       flex-shrink: 0;
       padding-bottom: 20px;
-      overflow: visible;
     }
 
     #previewInfo .preview-actions .share-btn,
@@ -1790,7 +1788,6 @@ body {
       gap: 8px;
       flex: 1;
       min-width: 100px;
-      overflow: visible;
       background: var(--accent);
       color: white;
       border: none;
