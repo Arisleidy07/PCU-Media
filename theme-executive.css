@@ -79,6 +79,7 @@ body {
   /* aspect-ratio: 16/9;  REMOVIDO - cortaba imágenes */
   border: 1px solid var(--border);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+  height: 200px; /* Altura fija */
 }
 
 .gallery-item:hover {
@@ -91,10 +92,27 @@ body {
   background: #000;
 }
 
-/* Bigger filename overlay for larger cards */
+/* Filename overlay - arreglado */
+.gallery-item .info-container {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 6px;
+  color: white;
+  z-index: 10;
+}
+
 .gallery-item .file-name {
-  font-size: 15px;
-  padding: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Item actions (pencil icon) */

@@ -1411,7 +1411,7 @@ class PCUMedia {
       mediaContainer.insertAdjacentHTML("beforeend", docIndicator);
     }
 
-    // Info container - siempre debajo
+    // Info container - ENCIMA de la imagen
     const infoContainer = document.createElement("div");
     infoContainer.className = "info-container";
 
@@ -1422,28 +1422,10 @@ class PCUMedia {
 
     infoContainer.innerHTML = fileName;
 
-    // Actions container - siempre abajo
+    // Actions container - oculto, solo menu-btn visible
     const actionsContainer = document.createElement("div");
     actionsContainer.className = "actions-container";
     actionsContainer.innerHTML = `
-      <button class="action-btn share-btn" type="button" data-file="${this.escapeHtml(file.path || "")}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="18" cy="5" r="3"></circle>
-          <circle cx="6" cy="12" r="3"></circle>
-          <circle cx="18" cy="19" r="3"></circle>
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-        </svg>
-        Compartir
-      </button>
-      <button class="action-btn download-btn" type="button" data-file="${this.escapeHtml(file.path || "")}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
-        Descargar
-      </button>
       <button class="action-btn menu-btn" type="button">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="5" r="1"></circle>
@@ -1453,9 +1435,9 @@ class PCUMedia {
       </button>
     `;
 
-    // Ensamblar estructura: media > info > actions
-    div.appendChild(mediaContainer);
+    // Ensamblar estructura: info (encima) > media > actions (oculto)
     div.appendChild(infoContainer);
+    div.appendChild(mediaContainer);
     div.appendChild(actionsContainer);
 
     // Make entire card clickable para abrir preview - arreglado para móvil
@@ -1519,36 +1501,8 @@ class PCUMedia {
       }
     });
 
-    // Event listeners para botones de acción
-    const shareBtn = actionsContainer.querySelector(".share-btn");
-    const downloadBtn = actionsContainer.querySelector(".download-btn");
+    // Event listeners para botón de acción (solo menu-btn)
     const menuBtn = actionsContainer.querySelector(".menu-btn");
-
-    if (shareBtn) {
-      shareBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        this.shareFile(file);
-      });
-      shareBtn.addEventListener("touchend", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        setTimeout(() => this.shareFile(file), 150);
-      });
-    }
-
-    if (downloadBtn) {
-      downloadBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        this.downloadFile(file);
-      });
-      downloadBtn.addEventListener("touchend", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        setTimeout(() => this.downloadFile(file), 150);
-      });
-    }
 
     if (menuBtn) {
       menuBtn.addEventListener("click", (e) => {
@@ -1563,7 +1517,6 @@ class PCUMedia {
       });
     }
 
-    // Context menu (right-click)
     div.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       e.stopPropagation();
