@@ -1411,7 +1411,7 @@ class PCUMedia {
       mediaContainer.insertAdjacentHTML("beforeend", docIndicator);
     }
 
-    // Info container - encima de la imagen, sin fondo
+    // Info container - abajo de la imagen, sin fondo negro
     const infoContainer = document.createElement("div");
     infoContainer.className = "info-container";
 
@@ -1435,9 +1435,9 @@ class PCUMedia {
       </button>
     `;
 
-    // Ensamblar estructura: info (encima) > media > actions (oculto)
-    div.appendChild(infoContainer);
+    // Ensamblar estructura: media > info (abajo) > actions (oculto)
     div.appendChild(mediaContainer);
+    div.appendChild(infoContainer);
     div.appendChild(actionsContainer);
 
     // Make entire card clickable para abrir preview - arreglado para móvil
