@@ -1054,7 +1054,7 @@ body {
   max-width: 100%;
 }
 
-/* Gallery item base - contenedor tamaño FIJO */
+/* Gallery item base - contenedor único */
 .gallery-item {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
@@ -1072,7 +1072,7 @@ body {
   margin: 0;
 }
 
-/* Media container - tamaño FIJO, imagen se adapta */
+/* Media container - único contenedor con imagen y título */
 .gallery-item .media-container {
   width: 100%;
   height: 280px;
@@ -1101,29 +1101,24 @@ body {
   margin: 0;
 }
 
-/* Info container - abajo de la imagen, sin fondo negro */
-.gallery-item .info-container {
-  padding: 12px;
-  background: transparent;
-  color: var(--text);
-  flex: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-height: 0;
-}
-
-.gallery-item .file-name {
+/* Título directamente sobre la imagen, sin fondo */
+.gallery-item .media-container .file-name {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
-  color: var(--text);
+  color: white;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
+  z-index: 5;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 /* Actions container - oculto */

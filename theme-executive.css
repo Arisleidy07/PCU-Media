@@ -91,24 +91,24 @@ body {
   background: #000;
 }
 
-/* Filename - abajo de la imagen, sin fondo negro */
-.gallery-item .info-container {
-  padding: 12px;
-  background: transparent;
-  color: var(--text);
-}
-
-.gallery-item .file-name {
+/* Filename - directamente sobre la imagen, sin contenedor */
+.gallery-item .media-container .file-name {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
   font-size: 14px;
   font-weight: 500;
   line-height: 1.4;
-  color: var(--text);
+  color: white;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
+  z-index: 5;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 /* Item actions (pencil icon) */

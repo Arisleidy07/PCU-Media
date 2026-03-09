@@ -1411,16 +1411,16 @@ class PCUMedia {
       mediaContainer.insertAdjacentHTML("beforeend", docIndicator);
     }
 
-    // Info container - abajo de la imagen, sin fondo negro
-    const infoContainer = document.createElement("div");
-    infoContainer.className = "info-container";
-
+    // Título directamente sobre la imagen, sin contenedor adicional
     const fileName =
       file.type !== "video"
         ? `<div class="file-name">${this.escapeHtml(file.name)}</div>`
         : "";
 
-    infoContainer.innerHTML = fileName;
+    // Agregar título directamente al media-container
+    if (fileName) {
+      mediaContainer.innerHTML += fileName;
+    }
 
     // Actions container - oculto, solo menu-btn visible
     const actionsContainer = document.createElement("div");
@@ -1435,9 +1435,8 @@ class PCUMedia {
       </button>
     `;
 
-    // Ensamblar estructura: media > info (abajo) > actions (oculto)
+    // Ensamblar estructura: media (con título dentro) > actions (oculto)
     div.appendChild(mediaContainer);
-    div.appendChild(infoContainer);
     div.appendChild(actionsContainer);
 
     // Make entire card clickable para abrir preview - arreglado para móvil
