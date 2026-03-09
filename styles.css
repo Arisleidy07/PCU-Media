@@ -1931,7 +1931,7 @@ video {
   font-size: 14px;
 }
 
-/* Preview Modal */
+/* Preview Modal - corregido */
 .preview-modal {
   position: fixed;
   top: 0;
@@ -1961,17 +1961,36 @@ video {
 
 .preview-content {
   position: relative;
-  background: rgba(15, 23, 42, 0.92);
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  max-width: 90vw;
+  max-height: 90vh;
   overflow: hidden;
-  max-width: 95vw;
-  height: 90vh;
-  max-height: 95vh;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.preview-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.8);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  z-index: 1000;
   display: flex;
-  box-shadow: var(--shadow-lg);
-  animation: slideUp 0.3s ease-out;
-  width: 100%;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.preview-close:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: scale(1.05);
 }
 
 /* Desktop modal improvements */
