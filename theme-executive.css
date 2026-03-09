@@ -79,7 +79,6 @@ body {
   /* aspect-ratio: 16/9;  REMOVIDO - cortaba imágenes */
   border: 1px solid var(--border);
   box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
-  height: 200px; /* Altura fija */
 }
 
 .gallery-item:hover {
@@ -92,27 +91,24 @@ body {
   background: #000;
 }
 
-/* Filename overlay - arreglado */
+/* Filename - abajo de la imagen, sin fondo negro */
 .gallery-item .info-container {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 8px;
-  padding: 6px 10px;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 6px;
-  color: white;
-  z-index: 10;
+  padding: 12px;
+  background: transparent;
+  color: var(--text);
 }
 
 .gallery-item .file-name {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 1.2;
-  color: white;
-  white-space: nowrap;
+  line-height: 1.4;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 /* Item actions (pencil icon) */
