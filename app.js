@@ -1925,12 +1925,12 @@ class PCUMedia {
     const descText = document.getElementById("previewDescText");
     if (descText) descText.textContent = metaDesc;
     // Show description block for all files (not just videos)
-    if (descBlock) descBlock.style.display = "block";
+    if (descBlock) descBlock.style.display = metaDesc ? "block" : "none";
 
     // Store current file for sharing/downloading
     this.currentPreviewFile = file;
 
-    // Ensure edit UI starts hidden
+    // Ensure edit UI starts hidden pero mostrar siempre el bloque de info
     this.setPreviewEditMode(false);
 
     // Add click handler to media area for full-screen view

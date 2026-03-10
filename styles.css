@@ -1481,6 +1481,7 @@ body {
 
   #previewInfo {
     width: 40%;
+    min-width: 300px;
     padding: 24px;
     border-left: 1px solid var(--border);
     display: flex;
@@ -1489,6 +1490,8 @@ body {
     margin: 0;
     overflow-y: auto;
     background: var(--panel);
+    visibility: visible;
+    opacity: 1;
   }
 
   #previewInfo h3 {
@@ -1497,6 +1500,7 @@ body {
     margin-bottom: 16px;
     word-break: break-word;
     color: var(--text);
+    display: block;
   }
 
   #previewInfo .preview-desc {
@@ -1513,6 +1517,8 @@ body {
     background: rgba(255, 255, 255, 0.04);
     border-radius: 8px;
     border: 1px solid var(--border);
+    display: grid;
+    gap: 8px;
   }
 
   #previewInfo .pe-label {
@@ -1687,9 +1693,11 @@ body {
       flex-direction: column;
       flex-shrink: 0;
       margin: 0;
-      overflow-y: auto;
+      overflow-y: visible;
       min-height: 0;
       background: transparent;
+      visibility: visible;
+      opacity: 1;
     }
 
     #previewInfo h3 {
@@ -1697,6 +1705,7 @@ body {
       margin-bottom: 12px;
       word-break: break-word;
       color: white;
+      display: block;
     }
 
     #previewInfo .preview-desc {
@@ -1713,6 +1722,8 @@ body {
       background: rgba(255, 255, 255, 0.04);
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.1);
+      display: grid;
+      gap: 8px;
     }
 
     #previewInfo .pe-label {
@@ -1775,6 +1786,7 @@ body {
       flex-wrap: wrap;
       flex-shrink: 0;
       padding-bottom: 20px;
+      overflow-y: visible;
     }
 
     #previewInfo .preview-actions .share-btn,
