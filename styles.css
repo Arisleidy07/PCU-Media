@@ -1517,6 +1517,16 @@ body {
     background: rgba(255, 255, 255, 0.04);
     border-radius: 8px;
     border: 1px solid var(--border);
+    display: none;
+    gap: 8px;
+  }
+
+  #previewInfo.is-editing .preview-edit {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    border: 1px solid var(--border);
     display: grid;
     gap: 8px;
   }
@@ -1717,6 +1727,16 @@ body {
     }
 
     #previewInfo .preview-edit {
+      margin-bottom: 16px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: none;
+      gap: 8px;
+    }
+
+    #previewInfo.is-editing .preview-edit {
       margin-bottom: 16px;
       padding: 12px;
       background: rgba(255, 255, 255, 0.04);
@@ -2256,10 +2276,10 @@ video {
   font-weight: 500;
 }
 
-/* Preview edit fields - mostrar siempre */
+/* Preview edit fields - cerrado por defecto */
 #previewInfo .preview-edit {
   margin-top: 14px;
-  display: grid;
+  display: none;
   gap: 8px;
 }
 

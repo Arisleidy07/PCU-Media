@@ -160,17 +160,12 @@ class PCUMedia {
       const label = btn.querySelector("span");
       if (label) label.textContent = enable ? "Cerrar edición" : "Editar";
     }
+    // No ocultar el bloque de descripción, solo mostrar/ocultar campos de edición
     const descBlock = document.getElementById("previewDescBlock");
     const descText = document.getElementById("previewDescText");
-    if (descBlock) {
-      if (enable) {
-        descBlock.style.display = "none";
-      } else {
-        const hasText = !!(
-          descText && String(descText.textContent || "").trim()
-        );
-        descBlock.style.display = hasText ? "block" : "none";
-      }
+    if (descBlock && descText) {
+      const hasText = !!(descText && String(descText.textContent || "").trim());
+      descBlock.style.display = hasText ? "block" : "none";
     }
     if (enable) {
       const input = document.getElementById("previewNameInput");
