@@ -2027,40 +2027,6 @@ video {
   transform: scale(1.05);
 }
 
-/* Desktop modal improvements */
-@media (min-width: 1025px) {
-  .preview-content {
-    max-width: 1200px;
-    height: 85vh;
-    max-height: 900px;
-    margin: 0 auto;
-    border-radius: var(--radius-lg);
-  }
-
-  .preview-media {
-    flex: 2;
-  }
-
-  .preview-info {
-    flex: 1;
-    max-width: 450px;
-    border-left: 1px solid var(--border);
-    border-top: none;
-    padding: 24px;
-    max-height: none;
-    overflow-y: auto;
-  }
-
-  .preview-info h3 {
-    font-size: 20px;
-    margin-bottom: 20px;
-  }
-
-  .preview-actions {
-    margin-top: 24px;
-  }
-}
-
 .preview-close {
   position: absolute;
   top: 16px;
