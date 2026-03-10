@@ -1504,6 +1504,7 @@ body {
     color: var(--muted);
     font-size: 14px;
     line-height: 1.5;
+    display: block;
   }
 
   #previewInfo .preview-edit {
@@ -1703,6 +1704,7 @@ body {
       color: rgba(255, 255, 255, 0.7);
       font-size: 14px;
       line-height: 1.5;
+      display: block;
     }
 
     #previewInfo .preview-edit {
@@ -2242,10 +2244,13 @@ video {
   font-weight: 500;
 }
 
-/* Preview edit fields */
+/* Preview edit fields - mostrar siempre */
 #previewInfo .preview-edit {
-  display: none;
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
 }
+
 #previewInfo.is-editing .preview-edit {
   margin-top: 14px;
   display: grid;
