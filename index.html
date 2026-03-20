@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="salta.png" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="theme-executive.css" />
+    <link rel="stylesheet" href="fullscreen-modal.css" />
   </head>
   <body>
     <div id="app">
@@ -591,6 +592,30 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Modal de imagen grande para móvil -->
+    <div id="fullscreenImageModal" class="fullscreen-image-modal">
+      <div
+        class="fullscreen-image-overlay"
+        onclick="closeFullscreenImage()"
+      ></div>
+      <button class="fullscreen-image-close" onclick="closeFullscreenImage()">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="fullscreen-image-container">
+        <img id="fullscreenImage" src="" alt="" />
       </div>
     </div>
 

@@ -1787,8 +1787,8 @@ video {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  max-width: 90vw;
-  max-height: 90vh;
+  max-width: 95vw;
+  max-height: 95vh;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   display: flex !important;
@@ -1803,6 +1803,7 @@ video {
   max-width: 60% !important;
   min-width: 300px !important;
   height: 100% !important;
+  max-height: 95vh !important;
   background: #000 !important;
   display: flex !important;
   align-items: center !important;
@@ -1812,6 +1813,7 @@ video {
   margin: 0 !important;
   float: none !important;
   clear: none !important;
+  overflow: hidden !important;
 }
 
 #previewContainer img,
@@ -1834,6 +1836,7 @@ video {
   width: 40% !important;
   min-width: 300px !important;
   max-width: 400px !important;
+  max-height: 95vh !important;
   padding: 24px !important;
   border-left: 1px solid var(--border) !important;
   display: flex !important;
@@ -1841,6 +1844,7 @@ video {
   flex-shrink: 0 !important;
   margin: 0 !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   background: var(--panel) !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -1871,23 +1875,27 @@ video {
 }
 
 #previewInfo .preview-edit {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  display: none;
-  gap: 8px;
+  margin-bottom: 20px !important;
+  padding: 16px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  display: none !important;
+  gap: 8px !important;
+  overflow-y: auto !important;
+  max-height: 60vh !important;
 }
 
 #previewInfo.is-editing .preview-edit {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  display: grid;
-  gap: 8px;
+  margin-bottom: 20px !important;
+  padding: 16px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  display: grid !important;
+  gap: 8px !important;
+  overflow-y: auto !important;
+  max-height: 60vh !important;
 }
 
 #previewInfo .pe-label {
@@ -1980,39 +1988,39 @@ video {
 
 /* Botón Editar */
 #previewInfo .preview-actions .edit-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: #64748b !important;
   color: white !important;
 }
 
 /* Botón Compartir */
 #previewInfo .preview-actions .share-btn {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+  background: #475569 !important;
   color: white !important;
 }
 
 /* Botón Descargar */
 #previewInfo .preview-actions .download-btn {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%) !important;
+  background: #334155 !important;
   color: white !important;
 }
 
 /* Hover effects */
 #previewInfo .preview-actions .edit-btn:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4) !important;
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+  box-shadow: 0 8px 20px rgba(100, 116, 139, 0.3) !important;
+  background: #475569 !important;
 }
 
 #previewInfo .preview-actions .share-btn:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 20px rgba(79, 172, 254, 0.4) !important;
-  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%) !important;
+  box-shadow: 0 8px 20px rgba(71, 85, 105, 0.3) !important;
+  background: #334155 !important;
 }
 
 #previewInfo .preview-actions .download-btn:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 20px rgba(67, 233, 123, 0.4) !important;
-  background: linear-gradient(135deg, #38f9d7 0%, #43e97b 100%) !important;
+  box-shadow: 0 8px 20px rgba(51, 65, 85, 0.3) !important;
+  background: #1e293b !important;
 }
 
 /* Iconos */
@@ -3585,7 +3593,7 @@ video {
     gap: 12px !important;
     margin-top: 24px !important;
     flex-wrap: wrap !important;
-    padding-bottom: 20px !important;
+    padding-bottom: 0 !important;
     margin-bottom: 0 !important;
   }
 

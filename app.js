@@ -1555,14 +1555,19 @@ class PCUMedia {
       const r = anchorEl.getBoundingClientRect();
       const menuW = 200;
       const menuH = 160;
-      let top = r.bottom + 8;
-      let left = r.right - menuW;
+
+      // Posicionar exactamente sobre el elemento clickeado
+      let left = r.left + r.width / 2 - menuW / 2;
+      let top = r.top + r.height / 2 - menuH / 2;
+
       // Clamp to viewport
       if (left < 8) left = 8;
       if (left + menuW > window.innerWidth - 8)
         left = window.innerWidth - menuW - 8;
-      if (top + menuH > window.innerHeight - 8) top = r.top - menuH - 8;
+      if (top + menuH > window.innerHeight - 8)
+        top = window.innerHeight - menuH - 8;
       if (top < 8) top = 8;
+
       menu.style.position = "fixed";
       menu.style.top = top + "px";
       menu.style.left = left + "px";
@@ -1886,7 +1891,7 @@ class PCUMedia {
 
     // Set media content - SIN ESTILOS INLINE
     if (file.type === "video") {
-      container.innerHTML = `<video src="${file.url}" controls autoplay muted loop playsinline></video>`;
+      container.innerHTML = `<video src="${file.url}" controls="controls" autoplay muted loop playsinline style="width: 100%; height: 100%; object-fit: contain;"></video>`;
     } else if (file.type === "image") {
       container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}">`;
     } else {
@@ -1935,7 +1940,15 @@ class PCUMedia {
       mediaArea.removeEventListener("click", this._mediaClickHandler);
       this._mediaClickHandler = (e) => {
         e.stopPropagation();
-        this.openFullScreenMedia(file);
+
+        // Check if mobile device
+        if (window.innerWidth <= 768 && file.type === "image") {
+          // Open fullscreen image modal on mobile
+          openFullscreenImage(file.url);
+        } else {
+          // Open full-screen media view on desktop
+          this.openFullScreenMedia(file);
+        }
       };
       mediaArea.addEventListener("click", this._mediaClickHandler);
     }
@@ -2996,6 +3009,21 @@ class PCUMedia {
 // Global function for closing preview
 function closePreview() {
   window.pcuMedia.closePreview();
+}
+
+// Global functions for fullscreen image modal
+function openFullscreenImage(imageSrc) {
+  const modal = document.getElementById("fullscreenImageModal");
+  const image = document.getElementById("fullscreenImage");
+  image.src = imageSrc;
+  modal.classList.add("active");
+  document.body.style.overflow = "hidden";
+}
+
+function closeFullscreenImage() {
+  const modal = document.getElementById("fullscreenImageModal");
+  modal.classList.remove("active");
+  document.body.style.overflow = "";
 }
 
 function closeUploadModal() {
