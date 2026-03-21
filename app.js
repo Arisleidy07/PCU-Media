@@ -1574,6 +1574,7 @@ class PCUMedia {
       menu.style.right = "auto";
       menu.style.bottom = "auto";
       menu.style.width = menuW + "px";
+      menu.style.zIndex = "1001";
     }
   }
 
@@ -1891,7 +1892,7 @@ class PCUMedia {
 
     // Set media content - SIN ESTILOS INLINE
     if (file.type === "video") {
-      container.innerHTML = `<video src="${file.url}" controls="controls" autoplay muted loop playsinline style="width: 100%; height: 100%; object-fit: contain;"></video>`;
+      container.innerHTML = `<video src="${file.url}" controls autoplay muted loop playsinline style="width: 100%; height: 100%; object-fit: contain;"></video>`;
     } else if (file.type === "image") {
       container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}">`;
     } else {
