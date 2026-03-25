@@ -1170,6 +1170,11 @@ class PCUMedia {
     await this.loadFiles();
     this.renderFolderTree();
     this.updateFolderToolbar();
+
+    // Cerrar sidebar automáticamente en móvil
+    if (window.innerWidth <= 768) {
+      this.toggleSidebar(false);
+    }
   }
 
   updateBreadcrumbs() {
@@ -1556,16 +1561,18 @@ class PCUMedia {
       const menuW = 200;
       const menuH = 160;
 
-      // Posicionar exactamente sobre el elemento clickeado
-      let left = r.left + r.width / 2 - menuW / 2;
-      let top = r.top + r.height / 2 - menuH / 2;
+      // Posicionar justo debajo del elemento clickeado
+      let left = r.left;
+      let top = r.bottom + 5;
 
-      // Clamp to viewport
-      if (left < 8) left = 8;
-      if (left + menuW > window.innerWidth - 8)
+      // Ajustar si se sale de la pantalla
+      if (left + menuW > window.innerWidth - 8) {
         left = window.innerWidth - menuW - 8;
-      if (top + menuH > window.innerHeight - 8)
-        top = window.innerHeight - menuH - 8;
+      }
+      if (left < 8) left = 8;
+      if (top + menuH > window.innerHeight - 8) {
+        top = r.top - menuH - 5;
+      }
       if (top < 8) top = 8;
 
       menu.style.position = "fixed";
@@ -1574,8 +1581,8 @@ class PCUMedia {
       menu.style.right = "auto";
       menu.style.bottom = "auto";
       menu.style.width = menuW + "px";
-      menu.style.zIndex = "1001";
     }
+    menu.style.zIndex = "1001";
   }
 
   // Menú contextual por item (renombrar, mover, eliminar)
@@ -3000,9 +3007,21 @@ class PCUMedia {
     if (shouldOpen) {
       sidebar.classList.add("open");
       overlay.classList.add("active");
+      // Bloquear scroll del body en móvil
+      if (window.innerWidth <= 768) {
+        document.body.style.overflow = "hidden";
+        document.body.style.position = "fixed";
+        document.body.style.width = "100%";
+      }
     } else {
       sidebar.classList.remove("open");
       overlay.classList.remove("active");
+      // Restaurar scroll del body en móvil
+      if (window.innerWidth <= 768) {
+        document.body.style.overflow = "";
+        document.body.style.position = "";
+        document.body.style.width = "";
+      }
     }
   }
 }
