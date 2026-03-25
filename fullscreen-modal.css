@@ -62,9 +62,10 @@
   max-height: 100%;
   width: auto;
   height: auto;
-  object-fit: contain !important;
+  object-fit: contain;
   object-position: center;
   border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
 /* Solo mostrar en dispositivos móviles */

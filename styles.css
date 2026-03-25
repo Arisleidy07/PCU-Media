@@ -85,6 +85,12 @@ body {
     min-height: 100vh;
     overflow-y: auto;
     overflow-x: hidden;
+    position: relative;
+  }
+
+  .main-content {
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 }
 
@@ -1153,9 +1159,16 @@ body {
   z-index: 10;
   padding: 0;
   margin: 0;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .gallery-item .menu-btn:hover {
+  opacity: 1;
+}
+
+.gallery-item .menu-btn:active {
+  transform: scale(0.95);
   opacity: 1;
 }
 
@@ -3510,8 +3523,7 @@ video {
     max-width: 100vw !important;
     width: 100vw !important;
     max-height: 100vh !important;
-    height: auto !important;
-    min-height: 100vh !important;
+    height: 100vh !important;
     border-radius: 0 !important;
     display: flex !important;
     flex-direction: column !important;
@@ -3558,7 +3570,7 @@ video {
   #previewInfo {
     width: 100% !important;
     padding: 20px !important;
-    padding-bottom: 0 !important;
+    padding-bottom: 20px !important;
     display: flex !important;
     flex-direction: column !important;
     flex-shrink: 0 !important;
@@ -3592,7 +3604,7 @@ video {
     display: flex !important;
     gap: 12px !important;
     margin-top: 24px !important;
-    margin-bottom: 20px !important;
+    margin-bottom: 0 !important;
     flex-wrap: wrap !important;
     padding-bottom: 0 !important;
   }

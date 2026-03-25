@@ -1561,9 +1561,9 @@ class PCUMedia {
       const menuW = 200;
       const menuH = 160;
 
-      // Posicionar justo debajo del elemento clickeado
+      // Posicionar exactamente sobre el elemento clickeado
       let left = r.left;
-      let top = r.bottom + 5;
+      let top = r.top;
 
       // Ajustar si se sale de la pantalla
       if (left + menuW > window.innerWidth - 8) {
@@ -1571,7 +1571,7 @@ class PCUMedia {
       }
       if (left < 8) left = 8;
       if (top + menuH > window.innerHeight - 8) {
-        top = r.top - menuH - 5;
+        top = window.innerHeight - menuH - 8;
       }
       if (top < 8) top = 8;
 
@@ -1901,7 +1901,18 @@ class PCUMedia {
     if (file.type === "video") {
       container.innerHTML = `<video src="${file.url}" controls autoplay muted loop playsinline style="width: 100%; height: 100%; object-fit: contain;"></video>`;
     } else if (file.type === "image") {
-      container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}">`;
+      container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="cursor: pointer;">`;
+
+      // Add click handler for fullscreen on mobile
+      const img = container.querySelector("img");
+      if (img) {
+        img.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (window.innerWidth <= 768) {
+            openFullscreenImage(file.url);
+          }
+        });
+      }
     } else {
       // Document / PDF — show iframe for PDF, download link for others
       const ext = (file.name || "").split(".").pop().toLowerCase();
