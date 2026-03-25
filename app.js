@@ -1016,6 +1016,12 @@ class PCUMedia {
         e.stopPropagation();
         this.navigateToFolder(node.path);
       });
+      // Add touch support for mobile
+      left.addEventListener("touchend", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        this.navigateToFolder(node.path);
+      });
     }
 
     const menuBtn = div.querySelector(".tree-menu-btn");
@@ -1023,6 +1029,12 @@ class PCUMedia {
     if (menuBtn) {
       menuBtn.addEventListener("click", (e) => {
         e.stopPropagation();
+        this.openFolderMenu(node, menuBtn);
+      });
+      // Add touch support for mobile
+      menuBtn.addEventListener("touchend", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
         this.openFolderMenu(node, menuBtn);
       });
     }
@@ -1562,17 +1574,15 @@ class PCUMedia {
       const menuH = 160;
 
       // Posicionar exactamente sobre el elemento clickeado
-      let left = r.left;
-      let top = r.top;
+      let left = r.left + r.width / 2 - menuW / 2;
+      let top = r.top + r.height / 2 - menuH / 2;
 
-      // Ajustar si se sale de la pantalla
-      if (left + menuW > window.innerWidth - 8) {
-        left = window.innerWidth - menuW - 8;
-      }
+      // Clamp to viewport
       if (left < 8) left = 8;
-      if (top + menuH > window.innerHeight - 8) {
+      if (left + menuW > window.innerWidth - 8)
+        left = window.innerWidth - menuW - 8;
+      if (top + menuH > window.innerHeight - 8)
         top = window.innerHeight - menuH - 8;
-      }
       if (top < 8) top = 8;
 
       menu.style.position = "fixed";
@@ -3018,11 +3028,14 @@ class PCUMedia {
     if (shouldOpen) {
       sidebar.classList.add("open");
       overlay.classList.add("active");
-      // Bloquear scroll del body en móvil
+      // Bloquear scroll del body en móvil SIN cambiar fondo
       if (window.innerWidth <= 768) {
         document.body.style.overflow = "hidden";
         document.body.style.position = "fixed";
         document.body.style.width = "100%";
+        document.body.style.top = "0";
+        document.body.style.left = "0";
+        document.body.style.backgroundColor = ""; // Asegurar que no haya fondo blanco
       }
     } else {
       sidebar.classList.remove("open");
@@ -3032,6 +3045,9 @@ class PCUMedia {
         document.body.style.overflow = "";
         document.body.style.position = "";
         document.body.style.width = "";
+        document.body.style.top = "";
+        document.body.style.left = "";
+        document.body.style.backgroundColor = "";
       }
     }
   }
