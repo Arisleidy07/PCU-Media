@@ -1012,16 +1012,19 @@ class PCUMedia {
 
     const left = div.querySelector(".tree-left");
     if (left) {
-      left.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.navigateToFolder(node.path);
-      });
-      // Add touch support for mobile
-      left.addEventListener("touchend", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        this.navigateToFolder(node.path);
-      });
+      // Solo el área del nombre de carpeta debe navegar, no toda el área izquierda
+      const folderName = left.querySelector(".tree-name");
+      if (folderName) {
+        folderName.addEventListener("click", (e) => {
+          e.stopPropagation();
+          this.navigateToFolder(node.path);
+        });
+        folderName.addEventListener("touchend", (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          this.navigateToFolder(node.path);
+        });
+      }
     }
 
     const menuBtn = div.querySelector(".tree-menu-btn");
@@ -1573,16 +1576,18 @@ class PCUMedia {
       const menuW = 200;
       const menuH = 160;
 
-      // Posicionar exactamente sobre el elemento clickeado
-      let left = r.left + r.width / 2 - menuW / 2;
-      let top = r.top + r.height / 2 - menuH / 2;
+      // Posicionar junto al botón de tres puntos (lado derecho)
+      let left = r.right - menuW + 5;
+      let top = r.top;
 
-      // Clamp to viewport
+      // Ajustar si se sale de la pantalla
       if (left < 8) left = 8;
-      if (left + menuW > window.innerWidth - 8)
-        left = window.innerWidth - menuW - 8;
-      if (top + menuH > window.innerHeight - 8)
+      if (left + menuW > window.innerWidth - 8) {
+        left = r.left - menuW - 5;
+      }
+      if (top + menuH > window.innerHeight - 8) {
         top = window.innerHeight - menuH - 8;
+      }
       if (top < 8) top = 8;
 
       menu.style.position = "fixed";
@@ -1634,6 +1639,12 @@ class PCUMedia {
     const menu = document.createElement("div");
     menu.className = "item-menu";
     menu.innerHTML = `
+      <button type="button" class="item-menu__close" aria-label="Cerrar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
       <button type="button" class="item-menu__item" data-action="open-folder">Abrir carpeta</button>
       <button type="button" class="item-menu__item" data-action="rename-folder">Renombrar carpeta</button>
       <button type="button" class="item-menu__item" data-action="move-down">Mover abajo</button>
@@ -1643,6 +1654,15 @@ class PCUMedia {
     document.body.appendChild(menu);
 
     this._positionMenu(menu, anchorEl);
+
+    // Close button handler
+    const closeBtn = menu.querySelector(".item-menu__close");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.closeActionMenu();
+      });
+    }
 
     menu.addEventListener("click", async (e) => {
       const t = e.target;
@@ -1656,6 +1676,17 @@ class PCUMedia {
       else if (action === "delete-folder") this.openDeleteFolderModal(node);
       this.closeActionMenu();
     });
+
+    // Close on outside click
+    const outsideClickHandler = (e) => {
+      if (!menu.contains(e.target) && !anchorEl.contains(e.target)) {
+        this.closeActionMenu();
+        document.removeEventListener("click", outsideClickHandler);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener("click", outsideClickHandler);
+    }, 100);
 
     this.activeActionMenu = menu;
   }
@@ -3028,26 +3059,25 @@ class PCUMedia {
     if (shouldOpen) {
       sidebar.classList.add("open");
       overlay.classList.add("active");
-      // Bloquear scroll del body en móvil SIN cambiar fondo
+      // Bloquear scroll del body SIN cambiar fondo
       if (window.innerWidth <= 768) {
         document.body.style.overflow = "hidden";
         document.body.style.position = "fixed";
         document.body.style.width = "100%";
         document.body.style.top = "0";
         document.body.style.left = "0";
-        document.body.style.backgroundColor = ""; // Asegurar que no haya fondo blanco
+        // No cambiar backgroundColor, mantener el diseño original
       }
     } else {
       sidebar.classList.remove("open");
       overlay.classList.remove("active");
-      // Restaurar scroll del body en móvil
+      // Restaurar scroll del body
       if (window.innerWidth <= 768) {
         document.body.style.overflow = "";
         document.body.style.position = "";
         document.body.style.width = "";
         document.body.style.top = "";
         document.body.style.left = "";
-        document.body.style.backgroundColor = "";
       }
     }
   }
