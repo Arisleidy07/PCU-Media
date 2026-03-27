@@ -2139,7 +2139,7 @@ class PCUMedia {
       const loadingText = document.createElement("div");
       loadingText.style.cssText =
         "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:20px;border-radius:10px;z-index:10000;";
-      loadingText.textContent = "Preparando archivo...";
+      loadingText.textContent = "Preparando archivo para compartir...";
       document.body.appendChild(loadingText);
 
       // Obtener el archivo como blob
@@ -2179,14 +2179,28 @@ class PCUMedia {
       // Quitar indicador de carga
       document.body.removeChild(loadingText);
 
-      // Abrir el modal nativo de compartir del dispositivo
-      if (navigator.share && navigator.canShare({ files: [shareFile] })) {
-        await navigator.share({
-          files: [shareFile],
-        });
+      // Verificar si el dispositivo soporta compartir archivos
+      if (navigator.share && navigator.canShare) {
+        if (navigator.canShare({ files: [shareFile] })) {
+          // Abrir el modal nativo de compartir del dispositivo con el archivo
+          await navigator.share({
+            files: [shareFile],
+            title: targetFile.name,
+            text: `Compartiendo ${targetFile.name}`,
+          });
+        } else {
+          // Si no puede compartir archivos, intentar compartir la URL
+          await navigator.share({
+            title: targetFile.name,
+            text: targetFile.description || `Compartiendo ${targetFile.name}`,
+            url: targetFile.url,
+          });
+        }
       } else {
-        // Si no hay soporte, mostrar mensaje claro
-        alert("Tu dispositivo no permite compartir archivos directamente.");
+        // Si no hay soporte para navigator.share, mostrar mensaje claro
+        alert(
+          "Tu dispositivo no permite compartir archivos directamente. Puedes descargar el archivo y compartirlo manualmente.",
+        );
       }
     } catch (error) {
       // Quitar indicador de carga si aún existe
@@ -2200,9 +2214,10 @@ class PCUMedia {
         return;
       }
 
-      // Para cualquier otro error, mostrar mensaje simple
       console.error("Error al compartir:", error);
-      alert("No se pudo compartir el archivo.");
+      alert(
+        "No se pudo compartir el archivo. Por favor, intenta descargarlo y compartirlo manualmente.",
+      );
     }
   }
 
