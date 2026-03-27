@@ -2227,9 +2227,18 @@ class PCUMedia {
       }
 
       console.error("Error al compartir:", error);
-      alert(
-        "No se pudo compartir el archivo. Por favor, intenta descargarlo y compartirlo manualmente.",
-      );
+      // No mostrar mensaje de error al usuario - solo descargar automáticamente
+      try {
+        const tempLink = document.createElement("a");
+        tempLink.href = targetFile.url;
+        tempLink.download = targetFile.name;
+        tempLink.style.display = "none";
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        document.body.removeChild(tempLink);
+      } catch (downloadError) {
+        console.error("Error al descargar:", downloadError);
+      }
     }
   }
 
