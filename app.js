@@ -2134,15 +2134,51 @@ class PCUMedia {
       return;
     }
 
-    let blob = null;
-
     try {
-      // Obtener el archivo como blob primero
-      const response = await fetch(targetFile.url);
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
+      // Intentar obtener el archivo desde el DOM si ya está cargado
+      let blob = null;
+
+      // Buscar si el archivo ya está cargado en el DOM
+      const mediaElement = document.querySelector(
+        "#previewContainer img, #previewContainer video",
+      );
+
+      if (mediaElement) {
+        // Si es una imagen, intentar convertirla a blob desde el DOM
+        if (mediaElement.tagName === "IMG") {
+          try {
+            const response = await fetch(mediaElement.src, { mode: "cors" });
+            blob = await response.blob();
+          } catch (e) {
+            console.warn("No se pudo obtener imagen del DOM:", e);
+          }
+        } else if (mediaElement.tagName === "VIDEO") {
+          try {
+            const response = await fetch(mediaElement.src, { mode: "cors" });
+            blob = await response.blob();
+          } catch (e) {
+            console.warn("No se pudo obtener video del DOM:", e);
+          }
+        }
       }
-      blob = await response.blob();
+
+      // Si no se pudo obtener del DOM, intentar con la URL original
+      if (!blob) {
+        try {
+          const response = await fetch(targetFile.url, { mode: "cors" });
+          if (response.ok) {
+            blob = await response.blob();
+          }
+        } catch (e) {
+          console.warn("No se pudo obtener blob desde URL:", e);
+        }
+      }
+
+      // Si aún no tenemos blob, no podemos compartir
+      if (!blob) {
+        console.error("No se pudo obtener el archivo para compartir");
+        return;
+      }
 
       // Determinar el tipo MIME correcto
       const ext = targetFile.name.split(".").pop().toLowerCase();
@@ -2211,23 +2247,6 @@ class PCUMedia {
       }
     } catch (error) {
       console.error("Error en shareFile:", error);
-
-      // Si tenemos el blob, usarlo para descargar
-      if (blob) {
-        try {
-          const tempUrl = URL.createObjectURL(blob);
-          const tempLink = document.createElement("a");
-          tempLink.href = tempUrl;
-          tempLink.download = targetFile.name;
-          tempLink.style.display = "none";
-          document.body.appendChild(tempLink);
-          tempLink.click();
-          document.body.removeChild(tempLink);
-          URL.revokeObjectURL(tempUrl);
-        } catch (downloadError) {
-          console.error("Error al descargar con blob:", downloadError);
-        }
-      }
     }
   }
 
