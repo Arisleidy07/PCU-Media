@@ -2130,68 +2130,63 @@ class PCUMedia {
   async shareFile(file = null) {
     const targetFile = file || this.currentPreviewFile;
     if (!targetFile) {
-      alert("No hay archivo para compartir.");
+      console.error("No hay archivo para compartir");
       return;
     }
 
-    try {
-      // Mostrar indicador de carga
-      const loadingText = document.createElement("div");
-      loadingText.style.cssText =
-        "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:20px;border-radius:10px;z-index:10000;";
-      loadingText.textContent = "Preparando archivo para compartir...";
-      document.body.appendChild(loadingText);
+    let blob = null;
 
-      // Obtener el archivo como blob
+    try {
+      // Obtener el archivo como blob primero
       const response = await fetch(targetFile.url);
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+        throw new Error(`Error HTTP: ${response.status}`);
       }
-      const blob = await response.blob();
+      blob = await response.blob();
 
-      // Determinar el tipo MIME correcto basado en la extensión
+      // Determinar el tipo MIME correcto
       const ext = targetFile.name.split(".").pop().toLowerCase();
-      let mimeType = blob.type;
+      const mimeTypes = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+        svg: "image/svg+xml",
+        mp4: "video/mp4",
+        webm: "video/webm",
+        mov: "video/quicktime",
+        pdf: "application/pdf",
+        doc: "application/msword",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      };
 
-      if (!mimeType || mimeType === "application/octet-stream") {
-        const mimeTypes = {
-          jpg: "image/jpeg",
-          jpeg: "image/jpeg",
-          png: "image/png",
-          gif: "image/gif",
-          webp: "image/webp",
-          svg: "image/svg+xml",
-          mp4: "video/mp4",
-          webm: "video/webm",
-          mov: "video/quicktime",
-          pdf: "application/pdf",
-          doc: "application/msword",
-          docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        };
-        mimeType = mimeTypes[ext] || "application/octet-stream";
-      }
+      const mimeType =
+        mimeTypes[ext] || blob.type || "application/octet-stream";
 
-      // Crear el archivo con el tipo correcto
+      // Crear el archivo para compartir
       const shareFile = new File([blob], targetFile.name, {
         type: mimeType,
       });
 
-      // Quitar indicador de carga
-      document.body.removeChild(loadingText);
-
-      // Verificar si el dispositivo soporta compartir archivos
+      // Compartir directamente usando navigator.share
       if (navigator.share) {
-        // Intentar compartir archivos directamente
         try {
           await navigator.share({
             files: [shareFile],
             title: targetFile.name,
           });
         } catch (shareError) {
-          // Si falla, intentar descargar automáticamente
-          console.warn("Error al compartir:", shareError);
+          // Si el usuario canceló, no hacer nada
+          if (
+            shareError.name === "NotAllowedError" ||
+            shareError.name === "AbortError"
+          ) {
+            return;
+          }
 
-          // Descargar el archivo automáticamente
+          // Si falla por otro motivo, descargar automáticamente usando el blob
+          console.warn("Error al compartir, descargando:", shareError);
           const tempUrl = URL.createObjectURL(blob);
           const tempLink = document.createElement("a");
           tempLink.href = tempUrl;
@@ -2203,7 +2198,7 @@ class PCUMedia {
           URL.revokeObjectURL(tempUrl);
         }
       } else {
-        // Si no hay navigator.share, descargar automáticamente
+        // Si no hay navigator.share, descargar automáticamente usando el blob
         const tempUrl = URL.createObjectURL(blob);
         const tempLink = document.createElement("a");
         tempLink.href = tempUrl;
@@ -2215,29 +2210,23 @@ class PCUMedia {
         URL.revokeObjectURL(tempUrl);
       }
     } catch (error) {
-      // Quitar indicador de carga si aún existe
-      const loading = document.querySelector(
-        'div[style*="Preparando archivo"]',
-      );
-      if (loading) document.body.removeChild(loading);
+      console.error("Error en shareFile:", error);
 
-      // Si el usuario canceló, no mostrar nada
-      if (error.name === "AbortError") {
-        return;
-      }
-
-      console.error("Error al compartir:", error);
-      // No mostrar mensaje de error al usuario - solo descargar automáticamente
-      try {
-        const tempLink = document.createElement("a");
-        tempLink.href = targetFile.url;
-        tempLink.download = targetFile.name;
-        tempLink.style.display = "none";
-        document.body.appendChild(tempLink);
-        tempLink.click();
-        document.body.removeChild(tempLink);
-      } catch (downloadError) {
-        console.error("Error al descargar:", downloadError);
+      // Si tenemos el blob, usarlo para descargar
+      if (blob) {
+        try {
+          const tempUrl = URL.createObjectURL(blob);
+          const tempLink = document.createElement("a");
+          tempLink.href = tempUrl;
+          tempLink.download = targetFile.name;
+          tempLink.style.display = "none";
+          document.body.appendChild(tempLink);
+          tempLink.click();
+          document.body.removeChild(tempLink);
+          URL.revokeObjectURL(tempUrl);
+        } catch (downloadError) {
+          console.error("Error al descargar con blob:", downloadError);
+        }
       }
     }
   }
