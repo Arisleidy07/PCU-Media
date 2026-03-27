@@ -2180,25 +2180,39 @@ class PCUMedia {
       document.body.removeChild(loadingText);
 
       // Verificar si el dispositivo soporta compartir archivos
-      if (navigator.share && navigator.canShare) {
-        if (navigator.canShare({ files: [shareFile] })) {
-          // Abrir el modal nativo de compartir del dispositivo con el archivo
+      if (navigator.share) {
+        // Intentar compartir archivos directamente
+        try {
           await navigator.share({
             files: [shareFile],
             title: targetFile.name,
-            text: `Compartiendo ${targetFile.name}`,
           });
-        } else {
-          // No permitir compartir URLs - mostrar mensaje claro
-          alert(
-            "Tu dispositivo no permite compartir archivos directamente. Por favor, descarga el archivo y compártelo manualmente.",
-          );
+        } catch (shareError) {
+          // Si falla, intentar descargar automáticamente
+          console.warn("Error al compartir:", shareError);
+
+          // Descargar el archivo automáticamente
+          const tempUrl = URL.createObjectURL(blob);
+          const tempLink = document.createElement("a");
+          tempLink.href = tempUrl;
+          tempLink.download = targetFile.name;
+          tempLink.style.display = "none";
+          document.body.appendChild(tempLink);
+          tempLink.click();
+          document.body.removeChild(tempLink);
+          URL.revokeObjectURL(tempUrl);
         }
       } else {
-        // Si no hay soporte para navigator.share, mostrar mensaje claro
-        alert(
-          "Tu dispositivo no permite compartir archivos directamente. Puedes descargar el archivo y compartirlo manualmente.",
-        );
+        // Si no hay navigator.share, descargar automáticamente
+        const tempUrl = URL.createObjectURL(blob);
+        const tempLink = document.createElement("a");
+        tempLink.href = tempUrl;
+        tempLink.download = targetFile.name;
+        tempLink.style.display = "none";
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        document.body.removeChild(tempLink);
+        URL.revokeObjectURL(tempUrl);
       }
     } catch (error) {
       // Quitar indicador de carga si aún existe
