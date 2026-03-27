@@ -2134,6 +2134,16 @@ class PCUMedia {
       return;
     }
 
+    // Limpiar cualquier elemento residual que pueda quedar fijo
+    const residualElements = document.querySelectorAll(
+      'div[style*="Preparando archivo"], div[style*="preparando"]',
+    );
+    residualElements.forEach((el) => {
+      if (el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    });
+
     try {
       // Intentar obtener el archivo desde el DOM si ya está cargado
       let blob = null;
