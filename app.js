@@ -2189,12 +2189,10 @@ class PCUMedia {
             text: `Compartiendo ${targetFile.name}`,
           });
         } else {
-          // Si no puede compartir archivos, intentar compartir la URL
-          await navigator.share({
-            title: targetFile.name,
-            text: targetFile.description || `Compartiendo ${targetFile.name}`,
-            url: targetFile.url,
-          });
+          // No permitir compartir URLs - mostrar mensaje claro
+          alert(
+            "Tu dispositivo no permite compartir archivos directamente. Por favor, descarga el archivo y compártelo manualmente.",
+          );
         }
       } else {
         // Si no hay soporte para navigator.share, mostrar mensaje claro
