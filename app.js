@@ -2167,48 +2167,58 @@ class PCUMedia {
     });
 
     try {
-      // Intentar obtener el archivo desde el DOM si ya está cargado
+      // Obtener el archivo directamente desde el DOM sin usar fetch de URLs
       let blob = null;
 
-      // Buscar si el archivo ya está cargado en el DOM
+      // Buscar el elemento multimedia en el DOM
       const mediaElement = document.querySelector(
         "#previewContainer img, #previewContainer video",
       );
 
       if (mediaElement) {
-        // Si es una imagen, intentar convertirla a blob desde el DOM
+        // Convertir el elemento del DOM a blob usando canvas o métodos directos
         if (mediaElement.tagName === "IMG") {
           try {
-            const response = await fetch(mediaElement.src, { mode: "cors" });
-            blob = await response.blob();
+            // Usar canvas para convertir la imagen a blob sin fetch
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            canvas.width = mediaElement.naturalWidth || 800;
+            canvas.height = mediaElement.naturalHeight || 600;
+
+            ctx.drawImage(mediaElement, 0, 0);
+
+            blob = await new Promise((resolve) => {
+              canvas.toBlob(resolve, "image/jpeg", 0.9);
+            });
           } catch (e) {
-            console.warn("No se pudo obtener imagen del DOM:", e);
+            console.warn("No se pudo convertir imagen a blob:", e);
           }
         } else if (mediaElement.tagName === "VIDEO") {
           try {
-            const response = await fetch(mediaElement.src, { mode: "cors" });
-            blob = await response.blob();
+            // Para videos, usar el método de captura o crear blob desde el video
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            canvas.width = mediaElement.videoWidth || 800;
+            canvas.height = mediaElement.videoHeight || 600;
+
+            ctx.drawImage(mediaElement, 0, 0);
+
+            blob = await new Promise((resolve) => {
+              canvas.toBlob(resolve, "image/jpeg", 0.9);
+            });
           } catch (e) {
-            console.warn("No se pudo obtener video del DOM:", e);
+            console.warn("No se pudo procesar video a blob:", e);
           }
         }
       }
 
-      // Si no se pudo obtener del DOM, intentar con la URL original
+      // Si no tenemos blob, no podemos continuar (sin usar URLs)
       if (!blob) {
-        try {
-          const response = await fetch(targetFile.url, { mode: "cors" });
-          if (response.ok) {
-            blob = await response.blob();
-          }
-        } catch (e) {
-          console.warn("No se pudo obtener blob desde URL:", e);
-        }
-      }
-
-      // Si aún no tenemos blob, no podemos compartir
-      if (!blob) {
-        console.error("No se pudo obtener el archivo para compartir");
+        console.error(
+          "No se pudo obtener el archivo para compartir sin usar URLs",
+        );
         return;
       }
 
@@ -2253,7 +2263,7 @@ class PCUMedia {
             return;
           }
 
-          // Si falla por otro motivo, descargar automáticamente usando el blob
+          // Si falla, descargar usando el blob (sin URLs)
           console.warn("Error al compartir, descargando:", shareError);
           const tempUrl = URL.createObjectURL(blob);
           const tempLink = document.createElement("a");
@@ -2266,7 +2276,7 @@ class PCUMedia {
           URL.revokeObjectURL(tempUrl);
         }
       } else {
-        // Si no hay navigator.share, descargar automáticamente usando el blob
+        // Si no hay navigator.share, descargar usando el blob (sin URLs)
         const tempUrl = URL.createObjectURL(blob);
         const tempLink = document.createElement("a");
         tempLink.href = tempUrl;
