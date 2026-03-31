@@ -1015,14 +1015,25 @@ class PCUMedia {
       // Solo el área del nombre de carpeta debe navegar, no toda el área izquierda
       const folderName = left.querySelector(".tree-name");
       if (folderName) {
-        folderName.addEventListener("click", (e) => {
+        let isProcessing = false;
+
+        const handleFolderClick = (e) => {
+          if (isProcessing) return;
+          isProcessing = true;
+
           e.stopPropagation();
           this.navigateToFolder(node.path);
-        });
+
+          setTimeout(() => {
+            isProcessing = false;
+          }, 300);
+        };
+
+        folderName.addEventListener("click", handleFolderClick);
         folderName.addEventListener("touchend", (e) => {
-          e.stopPropagation();
           e.preventDefault();
-          this.navigateToFolder(node.path);
+          e.stopPropagation();
+          handleFolderClick(e);
         });
       }
     }
@@ -1030,15 +1041,26 @@ class PCUMedia {
     const menuBtn = div.querySelector(".tree-menu-btn");
     const chevBtn = div.querySelector(".tree-chevron");
     if (menuBtn) {
-      menuBtn.addEventListener("click", (e) => {
+      let isMenuProcessing = false;
+
+      const handleMenuClick = (e) => {
+        if (isMenuProcessing) return;
+        isMenuProcessing = true;
+
         e.stopPropagation();
         this.openFolderMenu(node, menuBtn);
-      });
+
+        setTimeout(() => {
+          isMenuProcessing = false;
+        }, 300);
+      };
+
+      menuBtn.addEventListener("click", handleMenuClick);
       // Add touch support for mobile
       menuBtn.addEventListener("touchend", (e) => {
-        e.stopPropagation();
         e.preventDefault();
-        this.openFolderMenu(node, menuBtn);
+        e.stopPropagation();
+        handleMenuClick(e);
       });
     }
 
