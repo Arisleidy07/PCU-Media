@@ -2169,11 +2169,7 @@ class PCUMedia {
         variant: "info",
       });
 
-      const response = await fetch(targetFile.url, {
-        mode: "cors",
-        credentials: "omit",
-        cache: "no-cache",
-      });
+      const response = await fetch(targetFile.url);
 
       if (!response.ok) {
         throw new Error(
@@ -2262,11 +2258,7 @@ class PCUMedia {
         variant: "info",
       });
 
-      const response = await fetch(targetFile.url, {
-        mode: "cors",
-        credentials: "omit",
-        cache: "no-cache",
-      });
+      const response = await fetch(targetFile.url);
 
       if (!response.ok) {
         throw new Error(
