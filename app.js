@@ -748,12 +748,15 @@ class PCUMedia {
       });
     }
 
-    document
-      .getElementById("shareBtn")
-      .addEventListener("click", () => this.shareFile());
-    document
-      .getElementById("downloadBtn")
-      .addEventListener("click", () => this.downloadFile());
+    const shareBtn = document.getElementById("shareBtn");
+    if (shareBtn) {
+      shareBtn.addEventListener("click", () => this.shareFile());
+    }
+
+    const downloadBtn = document.getElementById("downloadBtn");
+    if (downloadBtn) {
+      downloadBtn.addEventListener("click", () => this.downloadFile());
+    }
 
     uploadPreviewArea.addEventListener("click", () => uploadFileInput.click());
     uploadFileInput.addEventListener("change", (e) => {
@@ -1172,9 +1175,6 @@ class PCUMedia {
     // Tap prolongado en móvil para mostrar menú
     let lpTimer = null;
     const startLP = (e) => {
-      try {
-        if (e && e.preventDefault) e.preventDefault();
-      } catch {}
       lpTimer = window.setTimeout(() => {
         this.openFolderMenu(node, menuBtn || div);
       }, 500);
@@ -1183,9 +1183,9 @@ class PCUMedia {
       if (lpTimer) window.clearTimeout(lpTimer);
       lpTimer = null;
     };
-    div.addEventListener("touchstart", startLP, { passive: false });
-    div.addEventListener("touchend", cancelLP);
-    div.addEventListener("touchmove", cancelLP);
+    div.addEventListener("touchstart", startLP, { passive: true });
+    div.addEventListener("touchend", cancelLP, { passive: true });
+    div.addEventListener("touchmove", cancelLP, { passive: true });
 
     if (hasChildren) {
       const childrenContainer = document.createElement("div");
@@ -1511,12 +1511,35 @@ class PCUMedia {
     // Event listeners optimizados para móvil
     div.addEventListener("click", handleCardClick);
 
-    // Touch events para móvil
+    // Touch events para móvil - detectar scroll vs tap
+    let touchStartY = 0;
+    let touchStartX = 0;
     let touchStartTime = 0;
+    let hasMoved = false;
+
     div.addEventListener(
       "touchstart",
       (e) => {
+        const touch = e.touches[0];
+        touchStartY = touch.clientY;
+        touchStartX = touch.clientX;
         touchStartTime = Date.now();
+        hasMoved = false;
+      },
+      { passive: true },
+    );
+
+    div.addEventListener(
+      "touchmove",
+      (e) => {
+        const touch = e.touches[0];
+        const moveY = Math.abs(touch.clientY - touchStartY);
+        const moveX = Math.abs(touch.clientX - touchStartX);
+
+        // Si se movió más de 10px, es scroll
+        if (moveY > 10 || moveX > 10) {
+          hasMoved = true;
+        }
       },
       { passive: true },
     );
@@ -1525,12 +1548,11 @@ class PCUMedia {
       const touchEndTime = Date.now();
       const touchDuration = touchEndTime - touchStartTime;
 
-      // Solo procesar si es un toque rápido (no scroll)
-      if (touchDuration < 300) {
+      // Solo abrir si es tap rápido SIN movimiento (no scroll)
+      if (touchDuration < 300 && !hasMoved) {
         e.preventDefault();
         e.stopPropagation();
 
-        // Pequeño delay para asegurar que se procese después del touchend
         setTimeout(() => {
           handleCardClick(e);
         }, 50);
@@ -1560,12 +1582,9 @@ class PCUMedia {
       this.openItemMenu(file, anchor);
     });
 
-    // Long press (mobile)
+    // Long press (mobile) - sin interferir con scroll
     let lpTimer = null;
     const startLP = (e) => {
-      try {
-        if (e && e.preventDefault) e.preventDefault();
-      } catch {}
       lpTimer = window.setTimeout(() => {
         const anchor = div.querySelector(".item-actions__btn") || div;
         this.openItemMenu(file, anchor);
@@ -1575,9 +1594,9 @@ class PCUMedia {
       if (lpTimer) window.clearTimeout(lpTimer);
       lpTimer = null;
     };
-    div.addEventListener("touchstart", startLP, { passive: false });
-    div.addEventListener("touchend", cancelLP);
-    div.addEventListener("touchmove", cancelLP);
+    div.addEventListener("touchstart", startLP, { passive: true });
+    div.addEventListener("touchend", cancelLP, { passive: true });
+    div.addEventListener("touchmove", cancelLP, { passive: true });
 
     return div;
   }
@@ -2015,6 +2034,44 @@ class PCUMedia {
     // Ensure edit UI starts hidden pero mostrar siempre el bloque de info
     this.setPreviewEditMode(false);
 
+    // Re-attach share and download event listeners to ensure they work
+    const shareBtn = document.getElementById("shareBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    if (shareBtn) {
+      const newShareBtn = shareBtn.cloneNode(true);
+      shareBtn.parentNode.replaceChild(newShareBtn, shareBtn);
+      newShareBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Share button clicked!");
+        this.shareFile();
+      });
+      newShareBtn.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Share button touched!");
+        setTimeout(() => this.shareFile(), 50);
+      });
+    }
+
+    if (downloadBtn) {
+      const newDownloadBtn = downloadBtn.cloneNode(true);
+      downloadBtn.parentNode.replaceChild(newDownloadBtn, downloadBtn);
+      newDownloadBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Download button clicked!");
+        this.downloadFile();
+      });
+      newDownloadBtn.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Download button touched!");
+        setTimeout(() => this.downloadFile(), 50);
+      });
+    }
+
     // Add click handler to media area for full-screen view
     const mediaArea = document.querySelector(".preview-media");
     if (mediaArea) {
@@ -2153,12 +2210,33 @@ class PCUMedia {
 
   async shareFile(file = null) {
     const targetFile = file || this.currentPreviewFile;
-    if (!targetFile || !navigator.share) return;
+    if (!targetFile) {
+      console.error("No file to share");
+      this.showToast({
+        title: "Error",
+        message: "No hay archivo para compartir",
+        variant: "error",
+      });
+      return;
+    }
+
+    console.log("Sharing file:", targetFile.name);
 
     try {
+      if (!navigator.share) {
+        throw new Error("Compartir no está disponible en este navegador");
+      }
+
       const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
+      console.log("Fetching from proxy:", proxyUrl);
       const response = await fetch(proxyUrl);
+
+      if (!response.ok) {
+        throw new Error("No se pudo obtener el archivo");
+      }
+
       const blob = await response.blob();
+      console.log("Blob fetched, size:", blob.size);
 
       const ext = targetFile.name.split(".").pop().toLowerCase();
       const mimeTypes = {
@@ -2174,39 +2252,109 @@ class PCUMedia {
       const mimeType =
         mimeTypes[ext] || blob.type || "application/octet-stream";
       const shareFile = new File([blob], targetFile.name, { type: mimeType });
+      console.log(
+        "Created File object:",
+        shareFile.name,
+        shareFile.type,
+        shareFile.size,
+      );
 
-      await navigator.share({ files: [shareFile] });
-    } catch (error) {
-      if (error.name !== "NotAllowedError" && error.name !== "AbortError") {
-        console.error(error);
+      if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+        console.log("Sharing file via native API");
+        await navigator.share({ files: [shareFile] });
+        console.log("Share completed");
+      } else {
+        console.log("File sharing not supported, using URL share");
+        await navigator.share({
+          title: targetFile.name,
+          url: targetFile.url,
+        });
+        console.log("URL share completed");
       }
+    } catch (error) {
+      if (error.name === "AbortError") {
+        console.log("Share cancelled by user");
+        return;
+      }
+      console.error("Error sharing file:", error);
+      this.showToast({
+        title: "Error al compartir",
+        message: error.message || "No se pudo compartir el archivo",
+        variant: "error",
+      });
     }
   }
 
   async downloadFile(file = null) {
     const targetFile = file || this.currentPreviewFile;
-    if (!targetFile) return;
+    if (!targetFile) {
+      console.error("No file to download");
+      this.showToast({
+        title: "Error",
+        message: "No hay archivo para descargar",
+        variant: "error",
+      });
+      return;
+    }
+
+    console.log("Downloading file:", targetFile.name);
 
     try {
       const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
+      console.log("Fetching from proxy:", proxyUrl);
+      const response = await fetch(proxyUrl);
+
+      if (!response.ok) {
+        throw new Error("No se pudo obtener el archivo");
+      }
+
+      const blob = await response.blob();
+      console.log("Blob fetched, size:", blob.size);
+
+      const ext = targetFile.name.split(".").pop().toLowerCase();
+      const mimeTypes = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+        mp4: "video/mp4",
+        webm: "video/webm",
+        mov: "video/quicktime",
+      };
+      const mimeType =
+        mimeTypes[ext] || blob.type || "application/octet-stream";
+      const properBlob = new Blob([blob], { type: mimeType });
+
+      const blobUrl = URL.createObjectURL(properBlob);
       const a = document.createElement("a");
-      a.href = proxyUrl;
+      a.href = blobUrl;
       a.download = targetFile.name;
-      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
         this.showToast({
           title: "Descargado",
-          message: `${targetFile.name} se guardó en tu dispositivo`,
+          message: `${targetFile.name} guardado`,
           variant: "success",
         });
       }
+
+      console.log("Download completed");
     } catch (error) {
-      console.error(error);
+      console.error("Download error:", error);
+      this.showToast({
+        title: "Error al descargar",
+        message: error.message || "No se pudo descargar el archivo",
+        variant: "error",
+      });
     }
   }
 
@@ -2527,9 +2675,6 @@ class PCUMedia {
     // Tap prolongado en móvil para abrir menú contextual
     let lpTimer = null;
     const startLP = (e) => {
-      try {
-        if (e && e.preventDefault) e.preventDefault();
-      } catch {}
       lpTimer = window.setTimeout(() => {
         this.openFolderMenu(node, row);
       }, 550);
@@ -2538,9 +2683,9 @@ class PCUMedia {
       if (lpTimer) window.clearTimeout(lpTimer);
       lpTimer = null;
     };
-    row.addEventListener("touchstart", startLP, { passive: false });
-    row.addEventListener("touchend", cancelLP);
-    row.addEventListener("touchmove", cancelLP);
+    row.addEventListener("touchstart", startLP, { passive: true });
+    row.addEventListener("touchend", cancelLP, { passive: true });
+    row.addEventListener("touchmove", cancelLP, { passive: true });
 
     // Siempre cargar metadatos (conteos) y contenido, aunque el cuerpo esté oculto si está colapsado
     this.renderHomeFolderBody(node, filesEl, childrenEl, meta, depth);
