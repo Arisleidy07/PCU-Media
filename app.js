@@ -2156,42 +2156,29 @@ class PCUMedia {
     if (!targetFile || !navigator.share) return;
 
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open(
-        "GET",
-        `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`,
-        true,
-      );
-      xhr.responseType = "blob";
+      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
+      const response = await fetch(proxyUrl);
+      const blob = await response.blob();
 
-      xhr.onload = async () => {
-        if (xhr.status === 200) {
-          const blob = xhr.response;
-          const ext = targetFile.name.split(".").pop().toLowerCase();
-          const mimeTypes = {
-            jpg: "image/jpeg",
-            jpeg: "image/jpeg",
-            png: "image/png",
-            gif: "image/gif",
-            webp: "image/webp",
-            svg: "image/svg+xml",
-            mp4: "video/mp4",
-            webm: "video/webm",
-            mov: "video/quicktime",
-            avi: "video/x-msvideo",
-            pdf: "application/pdf",
-          };
-          const mimeType =
-            mimeTypes[ext] || blob.type || "application/octet-stream";
-          const shareFile = new File([blob], targetFile.name, {
-            type: mimeType,
-          });
-
-          await navigator.share({ files: [shareFile] });
-        }
+      const ext = targetFile.name.split(".").pop().toLowerCase();
+      const mimeTypes = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+        svg: "image/svg+xml",
+        mp4: "video/mp4",
+        webm: "video/webm",
+        mov: "video/quicktime",
+        avi: "video/x-msvideo",
+        pdf: "application/pdf",
       };
+      const mimeType =
+        mimeTypes[ext] || blob.type || "application/octet-stream";
+      const shareFile = new File([blob], targetFile.name, { type: mimeType });
 
-      xhr.send();
+      await navigator.share({ files: [shareFile] });
     } catch (error) {
       if (error.name !== "NotAllowedError" && error.name !== "AbortError") {
         console.error(error);
