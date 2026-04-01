@@ -667,6 +667,45 @@ app.get("/folders", async (req, res) => {
 });
 
 // Manejo de errores
+// Proxy para forzar descarga directa de archivos de Firebase Storage
+app.get("/download-proxy", async (req, res) => {
+  try {
+    const { url, filename } = req.query;
+
+    if (!url) {
+      return res.status(400).json({ error: "URL requerida" });
+    }
+
+    // Fetch del archivo desde Firebase Storage
+    const fetch = (await import("node-fetch")).default;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Error descargando archivo: ${response.status}`);
+    }
+
+    // Obtener el tipo de contenido
+    const contentType =
+      response.headers.get("content-type") || "application/octet-stream";
+
+    // Configurar headers para forzar descarga
+    res.setHeader("Content-Type", contentType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename || "download"}"`,
+    );
+    res.setHeader("Cache-Control", "no-cache");
+
+    // Stream del archivo al cliente
+    response.body.pipe(res);
+  } catch (error) {
+    console.error("Error en download-proxy:", error);
+    res
+      .status(500)
+      .json({ error: error.message || "Error descargando archivo" });
+  }
+});
+
 app.use((err, req, res, next) => {
   if (!err) return next();
   const status = err instanceof multer.MulterError ? 400 : 500;

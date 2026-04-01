@@ -2200,10 +2200,18 @@ class PCUMedia {
     }
 
     try {
+      this.showToast({
+        title: "Descargando",
+        message: "Preparando archivo...",
+        variant: "info",
+      });
+
+      // Usar proxy del servidor para forzar descarga
+      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
+
       const a = document.createElement("a");
-      a.href = targetFile.url;
+      a.href = proxyUrl;
       a.download = targetFile.name;
-      a.target = "_blank";
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
