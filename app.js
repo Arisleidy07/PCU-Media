@@ -2163,17 +2163,71 @@ class PCUMedia {
     }
 
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: targetFile.name,
-          text: `Compartir: ${targetFile.name}`,
-          url: targetFile.url,
-        });
-      } else {
+      if (!navigator.share) {
         this.showToast({
           title: "No disponible",
           message: "La función compartir no está disponible en este navegador",
           variant: "error",
+        });
+        return;
+      }
+
+      this.showToast({
+        title: "Preparando",
+        message: "Obteniendo archivo...",
+        variant: "info",
+      });
+
+      // Usar proxy para obtener el archivo como blob
+      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
+      const response = await fetch(proxyUrl);
+
+      if (!response.ok) {
+        throw new Error("No se pudo obtener el archivo");
+      }
+
+      const blob = await response.blob();
+
+      if (!blob || blob.size === 0) {
+        throw new Error("El archivo está vacío");
+      }
+
+      // Determinar tipo MIME correcto
+      const ext = targetFile.name.split(".").pop().toLowerCase();
+      const mimeTypes = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+        svg: "image/svg+xml",
+        mp4: "video/mp4",
+        webm: "video/webm",
+        mov: "video/quicktime",
+        avi: "video/x-msvideo",
+        pdf: "application/pdf",
+        doc: "application/msword",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      };
+
+      const mimeType =
+        mimeTypes[ext] || blob.type || "application/octet-stream";
+
+      // Crear File object con el blob
+      const shareFile = new File([blob], targetFile.name, {
+        type: mimeType,
+      });
+
+      // Compartir el archivo REAL, no un enlace
+      if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
+        await navigator.share({
+          files: [shareFile],
+          title: targetFile.name,
+        });
+      } else {
+        await navigator.share({
+          files: [shareFile],
+          title: targetFile.name,
         });
       }
     } catch (error) {
