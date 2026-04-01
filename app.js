@@ -1988,7 +1988,7 @@ class PCUMedia {
             <polyline points="14 2 14 8 20 8"/>
           </svg>
           <p style="margin:12px 0 4px;font-weight:600;">${this.escapeHtml(file.name)}</p>
-          <a href="${file.url}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;font-size:14px;">Abrir archivo</a>
+          <p style="color:var(--muted);font-size:14px;">Usa el botón de descarga para obtener este archivo</p>
         </div>`;
       }
     }
@@ -2163,12 +2163,29 @@ class PCUMedia {
     }
 
     try {
-      const response = await fetch(targetFile.url);
+      this.showToast({
+        title: "Preparando",
+        message: "Obteniendo archivo...",
+        variant: "info",
+      });
+
+      const response = await fetch(targetFile.url, {
+        mode: "cors",
+        credentials: "omit",
+        cache: "no-cache",
+      });
+
       if (!response.ok) {
-        throw new Error("No se pudo obtener el archivo");
+        throw new Error(
+          `Error ${response.status}: No se pudo obtener el archivo`,
+        );
       }
 
       const blob = await response.blob();
+
+      if (!blob || blob.size === 0) {
+        throw new Error("El archivo está vacío o no se pudo cargar");
+      }
 
       const ext = targetFile.name.split(".").pop().toLowerCase();
       const mimeTypes = {
@@ -2239,12 +2256,30 @@ class PCUMedia {
     }
 
     try {
-      const response = await fetch(targetFile.url);
+      this.showToast({
+        title: "Descargando",
+        message: "Preparando archivo...",
+        variant: "info",
+      });
+
+      const response = await fetch(targetFile.url, {
+        mode: "cors",
+        credentials: "omit",
+        cache: "no-cache",
+      });
+
       if (!response.ok) {
-        throw new Error("No se pudo obtener el archivo");
+        throw new Error(
+          `Error ${response.status}: No se pudo obtener el archivo`,
+        );
       }
 
       const blob = await response.blob();
+
+      if (!blob || blob.size === 0) {
+        throw new Error("El archivo está vacío o no se pudo cargar");
+      }
+
       const objUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objUrl;
