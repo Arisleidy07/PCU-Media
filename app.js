@@ -2156,8 +2156,7 @@ class PCUMedia {
     if (!targetFile || !navigator.share) return;
 
     try {
-      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
-      const response = await fetch(proxyUrl);
+      const response = await fetch(targetFile.url);
       const blob = await response.blob();
 
       const ext = targetFile.name.split(".").pop().toLowerCase();
@@ -2167,12 +2166,9 @@ class PCUMedia {
         png: "image/png",
         gif: "image/gif",
         webp: "image/webp",
-        svg: "image/svg+xml",
         mp4: "video/mp4",
         webm: "video/webm",
         mov: "video/quicktime",
-        avi: "video/x-msvideo",
-        pdf: "application/pdf",
       };
       const mimeType =
         mimeTypes[ext] || blob.type || "application/octet-stream";
@@ -2188,25 +2184,10 @@ class PCUMedia {
 
   async downloadFile(file = null) {
     const targetFile = file || this.currentPreviewFile;
-    if (!targetFile) {
-      this.showToast({
-        title: "Error",
-        message: "No hay archivo para descargar",
-        variant: "error",
-      });
-      return;
-    }
+    if (!targetFile) return;
 
     try {
-      this.showToast({
-        title: "Descargando",
-        message: "Preparando archivo...",
-        variant: "info",
-      });
-
-      // Usar proxy del servidor para forzar descarga
       const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
-
       const a = document.createElement("a");
       a.href = proxyUrl;
       a.download = targetFile.name;
@@ -2214,18 +2195,8 @@ class PCUMedia {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-
-      this.showToast({
-        title: "Descargando",
-        message: targetFile.name,
-        variant: "success",
-      });
     } catch (error) {
-      this.showToast({
-        title: "Error al descargar",
-        message: error.message || "No se pudo descargar el archivo",
-        variant: "error",
-      });
+      console.error(error);
     }
   }
 
