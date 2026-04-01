@@ -363,7 +363,8 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
+  min-height: 0;
 }
 
 .header {
@@ -2108,27 +2109,6 @@ video {
   height: auto;
   padding: 0;
   margin: 0;
-}
-
-/* Ensure preview container centers content */
-#previewContainer {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  margin: 0;
-}
-
-#previewContainer img,
-#previewContainer video {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  object-position: center;
-  width: auto;
-  height: auto;
 }
 
 /* Create Folder Modal */
