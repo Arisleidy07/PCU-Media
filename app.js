@@ -2153,120 +2153,49 @@ class PCUMedia {
 
   async shareFile(file = null) {
     const targetFile = file || this.currentPreviewFile;
-    if (!targetFile) {
-      this.showToast({
-        title: "Error",
-        message: "No hay archivo para compartir",
-        variant: "error",
-      });
-      return;
-    }
+    if (!targetFile || !navigator.share) return;
 
     try {
-      if (!navigator.share) {
-        this.showToast({
-          title: "No disponible",
-          message: "La función compartir no está disponible en este navegador",
-          variant: "error",
-        });
-        return;
-      }
+      const xhr = new XMLHttpRequest();
+      xhr.open(
+        "GET",
+        `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`,
+        true,
+      );
+      xhr.responseType = "blob";
 
-      this.showToast({
-        title: "Preparando",
-        message: "Obteniendo archivo...",
-        variant: "info",
-      });
+      xhr.onload = async () => {
+        if (xhr.status === 200) {
+          const blob = xhr.response;
+          const ext = targetFile.name.split(".").pop().toLowerCase();
+          const mimeTypes = {
+            jpg: "image/jpeg",
+            jpeg: "image/jpeg",
+            png: "image/png",
+            gif: "image/gif",
+            webp: "image/webp",
+            svg: "image/svg+xml",
+            mp4: "video/mp4",
+            webm: "video/webm",
+            mov: "video/quicktime",
+            avi: "video/x-msvideo",
+            pdf: "application/pdf",
+          };
+          const mimeType =
+            mimeTypes[ext] || blob.type || "application/octet-stream";
+          const shareFile = new File([blob], targetFile.name, {
+            type: mimeType,
+          });
 
-      // Obtener blob usando XMLHttpRequest (más confiable que fetch para binarios)
-      const blob = await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
-
-        xhr.open("GET", proxyUrl, true);
-        xhr.responseType = "blob";
-
-        xhr.onload = function () {
-          if (xhr.status === 200) {
-            resolve(xhr.response);
-          } else {
-            reject(
-              new Error(`Error ${xhr.status}: No se pudo obtener el archivo`),
-            );
-          }
-        };
-
-        xhr.onerror = function () {
-          reject(new Error("Error de red al obtener el archivo"));
-        };
-
-        xhr.send();
-      });
-
-      if (!blob || blob.size === 0) {
-        throw new Error("El archivo está vacío o no se pudo cargar");
-      }
-
-      // Determinar tipo MIME correcto
-      const ext = targetFile.name.split(".").pop().toLowerCase();
-      const mimeTypes = {
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        png: "image/png",
-        gif: "image/gif",
-        webp: "image/webp",
-        svg: "image/svg+xml",
-        mp4: "video/mp4",
-        webm: "video/webm",
-        mov: "video/quicktime",
-        avi: "video/x-msvideo",
-        pdf: "application/pdf",
-        doc: "application/msword",
-        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          await navigator.share({ files: [shareFile] });
+        }
       };
 
-      const mimeType =
-        mimeTypes[ext] || blob.type || "application/octet-stream";
-
-      // Crear File object con el blob
-      const shareFile = new File([blob], targetFile.name, {
-        type: mimeType,
-      });
-
-      console.log("Compartiendo archivo:", {
-        name: shareFile.name,
-        size: shareFile.size,
-        type: shareFile.type,
-      });
-
-      // Verificar si puede compartir archivos
-      if (navigator.canShare && !navigator.canShare({ files: [shareFile] })) {
-        throw new Error(
-          "Este navegador no puede compartir archivos de este tipo",
-        );
-      }
-
-      // Compartir el archivo REAL
-      await navigator.share({
-        files: [shareFile],
-        title: targetFile.name,
-      });
-
-      this.showToast({
-        title: "Compartido",
-        message: "Archivo compartido exitosamente",
-        variant: "success",
-      });
+      xhr.send();
     } catch (error) {
-      if (error.name === "NotAllowedError" || error.name === "AbortError") {
-        return;
+      if (error.name !== "NotAllowedError" && error.name !== "AbortError") {
+        console.error(error);
       }
-      console.error("Error al compartir:", error);
-      this.showToast({
-        title: "Error al compartir",
-        message: error.message || "No se pudo compartir el archivo",
-        variant: "error",
-      });
     }
   }
 
