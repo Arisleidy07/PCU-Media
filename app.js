@@ -2163,63 +2163,11 @@ class PCUMedia {
     }
 
     try {
-      this.showToast({
-        title: "Preparando",
-        message: "Obteniendo archivo...",
-        variant: "info",
-      });
-
-      const response = await fetch(targetFile.url);
-
-      if (!response.ok) {
-        throw new Error(
-          `Error ${response.status}: No se pudo obtener el archivo`,
-        );
-      }
-
-      const blob = await response.blob();
-
-      if (!blob || blob.size === 0) {
-        throw new Error("El archivo está vacío o no se pudo cargar");
-      }
-
-      const ext = targetFile.name.split(".").pop().toLowerCase();
-      const mimeTypes = {
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        png: "image/png",
-        gif: "image/gif",
-        webp: "image/webp",
-        svg: "image/svg+xml",
-        mp4: "video/mp4",
-        webm: "video/webm",
-        mov: "video/quicktime",
-        avi: "video/x-msvideo",
-        pdf: "application/pdf",
-        doc: "application/msword",
-        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      };
-
-      const mimeType =
-        mimeTypes[ext] || blob.type || "application/octet-stream";
-
-      const shareFile = new File([blob], targetFile.name, {
-        type: mimeType,
-      });
-
-      if (
-        navigator.share &&
-        navigator.canShare &&
-        navigator.canShare({ files: [shareFile] })
-      ) {
+      if (navigator.share) {
         await navigator.share({
-          files: [shareFile],
           title: targetFile.name,
-        });
-      } else if (navigator.share) {
-        await navigator.share({
-          files: [shareFile],
-          title: targetFile.name,
+          text: `Compartir: ${targetFile.name}`,
+          url: targetFile.url,
         });
       } else {
         this.showToast({
@@ -2252,35 +2200,14 @@ class PCUMedia {
     }
 
     try {
-      this.showToast({
-        title: "Descargando",
-        message: "Preparando archivo...",
-        variant: "info",
-      });
-
-      const response = await fetch(targetFile.url);
-
-      if (!response.ok) {
-        throw new Error(
-          `Error ${response.status}: No se pudo obtener el archivo`,
-        );
-      }
-
-      const blob = await response.blob();
-
-      if (!blob || blob.size === 0) {
-        throw new Error("El archivo está vacío o no se pudo cargar");
-      }
-
-      const objUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = objUrl;
+      a.href = targetFile.url;
       a.download = targetFile.name;
+      a.target = "_blank";
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
 
       this.showToast({
         title: "Descargando",
