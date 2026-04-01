@@ -2156,7 +2156,8 @@ class PCUMedia {
     if (!targetFile || !navigator.share) return;
 
     try {
-      const response = await fetch(targetFile.url);
+      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
+      const response = await fetch(proxyUrl);
       const blob = await response.blob();
 
       const ext = targetFile.name.split(".").pop().toLowerCase();
@@ -2195,6 +2196,15 @@ class PCUMedia {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        this.showToast({
+          title: "Descargado",
+          message: `${targetFile.name} se guardó en tu dispositivo`,
+          variant: "success",
+        });
+      }
     } catch (error) {
       console.error(error);
     }
