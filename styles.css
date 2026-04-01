@@ -1478,284 +1478,6 @@ body {
     padding: 0;
     margin: 0;
   }
-
-  /* Desktop modal - layout horizontal */
-  @media (min-width: 1025px) {
-    .preview-content {
-      max-width: 1200px;
-      height: 85vh;
-      max-height: 900px;
-      margin: 0 auto;
-      border-radius: var(--radius-lg);
-      display: flex;
-      flex-direction: row;
-      overflow: hidden;
-      background: var(--panel);
-    }
-
-    #previewContainer {
-      width: 60%;
-      height: 100%;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      padding: 0;
-      margin: 0;
-    }
-
-    #previewContainer img,
-    #previewContainer video {
-      max-width: 100%;
-      max-height: 100%;
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      object-position: center;
-      display: block;
-      padding: 0;
-      margin: 0;
-    }
-
-    #previewInfo {
-      width: 40%;
-      min-width: 300px;
-      padding: 24px;
-      border-left: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      flex-shrink: 0;
-      margin: 0;
-      overflow-y: auto;
-      background: var(--panel);
-      visibility: visible;
-      opacity: 1;
-    }
-
-    #previewInfo h3 {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 16px;
-      word-break: break-word;
-      color: var(--text);
-      display: block;
-    }
-
-    #previewInfo .preview-desc {
-      margin-bottom: 20px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.5;
-      display: block;
-    }
-
-    #previewInfo .preview-edit {
-      margin-bottom: 20px;
-      padding: 16px;
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      display: none;
-      gap: 8px;
-    }
-
-    #previewInfo.is-editing .preview-edit {
-      margin-bottom: 20px;
-      padding: 16px;
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      display: grid;
-      gap: 8px;
-    }
-
-    #previewInfo .pe-label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    #previewInfo .pe-name {
-      flex: 1;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--surface);
-      color: var(--text);
-      font-size: 14px;
-    }
-
-    #previewInfo .pe-ext {
-      padding: 8px 12px;
-      background: var(--surface-2);
-      border-radius: 6px;
-      color: var(--muted);
-      font-size: 14px;
-      margin-left: 8px;
-    }
-
-    #previewInfo .pe-desc {
-      width: 100%;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--surface);
-      color: var(--text);
-      font-size: 14px;
-      resize: vertical;
-      min-height: 80px;
-    }
-
-    #previewInfo .pe-save {
-      padding: 10px 16px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-
-    #previewInfo .pe-save:hover {
-      background: var(--accent-2);
-    }
-
-    #previewInfo .preview-actions {
-      display: flex;
-      gap: 12px;
-      margin-top: 20px;
-      flex-wrap: wrap;
-    }
-
-    #previewInfo .preview-actions .share-btn,
-    #previewInfo .preview-actions .download-btn,
-    #previewInfo .preview-actions .edit-btn {
-      padding: 12px 16px;
-      font-size: 14px;
-      border-radius: 8px;
-      min-height: 44px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      flex: 1;
-      min-width: 100px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-
-    #previewInfo .preview-actions .share-btn:hover,
-    #previewInfo .preview-actions .download-btn:hover,
-    #previewInfo .preview-actions .edit-btn:hover {
-      background: var(--accent-2);
-      transform: translateY(-1px);
-    }
-
-    .preview-close {
-      top: 20px;
-      right: 20px;
-      width: 40px;
-      height: 40px;
-      background: rgba(0, 0, 0, 0.8);
-      border: none;
-      border-radius: 50%;
-      color: white;
-      cursor: pointer;
-      z-index: 1000;
-    }
-
-    .preview-close:hover {
-      background: rgba(0, 0, 0, 0.9);
-    }
-  }
-
-  #previewContainer img,
-  #previewContainer video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
-    display: block;
-    padding: 0;
-    margin: 0;
-  }
-
-  #previewContainer iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-    border-radius: 0;
-  }
-
-  #previewInfo {
-    width: 100%;
-    padding: 16px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    margin: 0;
-    overflow: visible;
-    min-height: 0;
-    background: transparent;
-  }
-
-  #previewInfo h3 {
-    font-size: 16px;
-    margin-bottom: 12px;
-    word-break: break-word;
-    overflow: visible;
-  }
-
-  #previewInfo .preview-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-    flex-shrink: 0;
-    padding-bottom: 20px;
-    overflow: visible !important;
-  }
-
-  #previewInfo .preview-actions .share-btn,
-  #previewInfo .preview-actions .download-btn,
-  #previewInfo .preview-actions .edit-btn {
-    padding: 12px 16px;
-    font-size: 14px;
-    border-radius: 8px;
-    min-height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    flex: 1;
-    min-width: 100px;
-    overflow: visible;
-  }
-
-  .preview-close {
-    top: 12px;
-    left: 12px;
-    width: 36px;
-    height: 36px;
-    z-index: 100;
-  }
-
-  .share-btn,
-  .download-btn {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
 }
 
 /* Prevent horizontal overflow everywhere */
@@ -1791,7 +1513,9 @@ video {
   font-size: 14px;
 }
 
-/* Preview Modal - BASE UNIFICADO */
+/* ===== PREVIEW MODAL - LIMPIO Y ORGANIZADO ===== */
+
+/* Base del modal */
 .preview-modal {
   position: fixed;
   top: 0;
@@ -1815,12 +1539,12 @@ video {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
 }
 
-/* Preview Content - Desktop hermoso de 2 columnas */
-@media (min-width: 769px) {
+/* DESKTOP (1025px+) - 2 columnas: imagen izquierda + info derecha */
+@media (min-width: 1025px) {
   .preview-content {
     position: fixed;
     top: 0;
@@ -2086,29 +1810,139 @@ video {
   }
 }
 
-.preview-media {
-  flex: 3;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
-  min-width: 300px;
-  min-height: 400px;
-  padding: 0;
-  margin: 0;
-}
+/* TABLET (769px-1024px) - Diseño intermedio adaptado */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .preview-content {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(
+      135deg,
+      rgba(15, 23, 42, 0.98),
+      rgba(11, 18, 36, 0.98)
+    );
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    z-index: 1001;
+  }
 
-.preview-media img,
-.preview-media video {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  object-position: center;
-  width: auto;
-  height: auto;
-  padding: 0;
-  margin: 0;
+  #previewContainer {
+    width: 55%;
+    height: 100vh;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  #previewContainer img,
+  #previewContainer video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  #previewInfo {
+    width: 45%;
+    height: 100vh;
+    padding: 32px;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: transparent;
+  }
+
+  #previewInfo h3 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: white;
+  }
+
+  #previewInfo .preview-desc {
+    margin-bottom: 20px;
+    padding: 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  #previewInfo .preview-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 20px;
+  }
+
+  #previewInfo .preview-actions .share-btn,
+  #previewInfo .preview-actions .download-btn,
+  #previewInfo .preview-actions .edit-btn {
+    padding: 14px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    background: linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0.2),
+      rgba(56, 189, 248, 0.2)
+    );
+    border: 1px solid rgba(45, 212, 191, 0.3);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  #previewInfo .preview-actions .edit-btn {
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.2),
+      rgba(99, 102, 241, 0.2)
+    );
+    border: 1px solid rgba(139, 92, 246, 0.3);
+  }
+
+  .preview-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    z-index: 1002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 /* Create Folder Modal */
