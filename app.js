@@ -2075,8 +2075,10 @@ class PCUMedia {
       mediaEl.style.cssText =
         "max-width:100%; max-height:100%; object-fit:contain; display: block;";
     } else {
-      // For documents, just open in new tab
-      window.open(file.url, "_blank");
+      // For documents, show message instead of opening
+      alert(
+        "No se puede compartir documentos directamente. Por favor, descarga el archivo y compártelo manualmente.",
+      );
       return;
     }
 
@@ -2152,77 +2154,22 @@ class PCUMedia {
   async shareFile(file = null) {
     const targetFile = file || this.currentPreviewFile;
     if (!targetFile) {
-      console.error("No hay archivo para compartir");
+      this.showToast({
+        title: "Error",
+        message: "No hay archivo para compartir",
+        variant: "error",
+      });
       return;
     }
 
-    // Limpiar cualquier elemento residual que pueda quedar fijo
-    const residualElements = document.querySelectorAll(
-      'div[style*="Preparando archivo"], div[style*="preparando"]',
-    );
-    residualElements.forEach((el) => {
-      if (el.parentNode) {
-        el.parentNode.removeChild(el);
-      }
-    });
-
     try {
-      // Obtener el archivo directamente desde el DOM sin usar fetch de URLs
-      let blob = null;
-
-      // Buscar el elemento multimedia en el DOM
-      const mediaElement = document.querySelector(
-        "#previewContainer img, #previewContainer video",
-      );
-
-      if (mediaElement) {
-        // Convertir el elemento del DOM a blob usando canvas o métodos directos
-        if (mediaElement.tagName === "IMG") {
-          try {
-            // Usar canvas para convertir la imagen a blob sin fetch
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-
-            canvas.width = mediaElement.naturalWidth || 800;
-            canvas.height = mediaElement.naturalHeight || 600;
-
-            ctx.drawImage(mediaElement, 0, 0);
-
-            blob = await new Promise((resolve) => {
-              canvas.toBlob(resolve, "image/jpeg", 0.9);
-            });
-          } catch (e) {
-            console.warn("No se pudo convertir imagen a blob:", e);
-          }
-        } else if (mediaElement.tagName === "VIDEO") {
-          try {
-            // Para videos, usar el método de captura o crear blob desde el video
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-
-            canvas.width = mediaElement.videoWidth || 800;
-            canvas.height = mediaElement.videoHeight || 600;
-
-            ctx.drawImage(mediaElement, 0, 0);
-
-            blob = await new Promise((resolve) => {
-              canvas.toBlob(resolve, "image/jpeg", 0.9);
-            });
-          } catch (e) {
-            console.warn("No se pudo procesar video a blob:", e);
-          }
-        }
+      const response = await fetch(targetFile.url);
+      if (!response.ok) {
+        throw new Error("No se pudo obtener el archivo");
       }
 
-      // Si no tenemos blob, no podemos continuar (sin usar URLs)
-      if (!blob) {
-        console.error(
-          "No se pudo obtener el archivo para compartir sin usar URLs",
-        );
-        return;
-      }
+      const blob = await response.blob();
 
-      // Determinar el tipo MIME correcto
       const ext = targetFile.name.split(".").pop().toLowerCase();
       const mimeTypes = {
         jpg: "image/jpeg",
@@ -2234,6 +2181,7 @@ class PCUMedia {
         mp4: "video/mp4",
         webm: "video/webm",
         mov: "video/quicktime",
+        avi: "video/x-msvideo",
         pdf: "application/pdf",
         doc: "application/msword",
         docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -2242,86 +2190,83 @@ class PCUMedia {
       const mimeType =
         mimeTypes[ext] || blob.type || "application/octet-stream";
 
-      // Crear el archivo para compartir
       const shareFile = new File([blob], targetFile.name, {
         type: mimeType,
       });
 
-      // Compartir directamente usando navigator.share
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            files: [shareFile],
-            title: targetFile.name,
-          });
-        } catch (shareError) {
-          // Si el usuario canceló, no hacer nada
-          if (
-            shareError.name === "NotAllowedError" ||
-            shareError.name === "AbortError"
-          ) {
-            return;
-          }
-
-          // Si falla, descargar usando el blob (sin URLs)
-          console.warn("Error al compartir, descargando:", shareError);
-          const tempUrl = URL.createObjectURL(blob);
-          const tempLink = document.createElement("a");
-          tempLink.href = tempUrl;
-          tempLink.download = targetFile.name;
-          tempLink.style.display = "none";
-          document.body.appendChild(tempLink);
-          tempLink.click();
-          document.body.removeChild(tempLink);
-          URL.revokeObjectURL(tempUrl);
-        }
+      if (
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({ files: [shareFile] })
+      ) {
+        await navigator.share({
+          files: [shareFile],
+          title: targetFile.name,
+        });
+      } else if (navigator.share) {
+        await navigator.share({
+          files: [shareFile],
+          title: targetFile.name,
+        });
       } else {
-        // Si no hay navigator.share, descargar usando el blob (sin URLs)
-        const tempUrl = URL.createObjectURL(blob);
-        const tempLink = document.createElement("a");
-        tempLink.href = tempUrl;
-        tempLink.download = targetFile.name;
-        tempLink.style.display = "none";
-        document.body.appendChild(tempLink);
-        tempLink.click();
-        document.body.removeChild(tempLink);
-        URL.revokeObjectURL(tempUrl);
+        this.showToast({
+          title: "No disponible",
+          message: "La función compartir no está disponible en este navegador",
+          variant: "error",
+        });
       }
     } catch (error) {
-      console.error("Error en shareFile:", error);
+      if (error.name === "NotAllowedError" || error.name === "AbortError") {
+        return;
+      }
+      this.showToast({
+        title: "Error al compartir",
+        message: error.message || "No se pudo compartir el archivo",
+        variant: "error",
+      });
     }
   }
 
-  downloadFile(file = null) {
+  async downloadFile(file = null) {
     const targetFile = file || this.currentPreviewFile;
-    if (!targetFile) return;
-    const doDirect = () => {
-      const link = document.createElement("a");
-      link.href = targetFile.url;
-      link.download = targetFile.name;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    };
-    // Prefer blob download to enforce save dialog
-    (async () => {
-      try {
-        const res = await fetch(targetFile.url);
-        if (!res.ok) throw new Error("fetch failed");
-        const blob = await res.blob();
-        const objUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = objUrl;
-        a.download = targetFile.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
-      } catch (_) {
-        doDirect();
+    if (!targetFile) {
+      this.showToast({
+        title: "Error",
+        message: "No hay archivo para descargar",
+        variant: "error",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(targetFile.url);
+      if (!response.ok) {
+        throw new Error("No se pudo obtener el archivo");
       }
-    })();
+
+      const blob = await response.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = targetFile.name;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objUrl), 1000);
+
+      this.showToast({
+        title: "Descargando",
+        message: targetFile.name,
+        variant: "success",
+      });
+    } catch (error) {
+      this.showToast({
+        title: "Error al descargar",
+        message: error.message || "No se pudo descargar el archivo",
+        variant: "error",
+      });
+    }
   }
 
   openUploadModal() {
