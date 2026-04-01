@@ -2178,18 +2178,33 @@ class PCUMedia {
         variant: "info",
       });
 
-      // Usar proxy para obtener el archivo como blob
-      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
-      const response = await fetch(proxyUrl);
+      // Obtener blob usando XMLHttpRequest (más confiable que fetch para binarios)
+      const blob = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`;
 
-      if (!response.ok) {
-        throw new Error("No se pudo obtener el archivo");
-      }
+        xhr.open("GET", proxyUrl, true);
+        xhr.responseType = "blob";
 
-      const blob = await response.blob();
+        xhr.onload = function () {
+          if (xhr.status === 200) {
+            resolve(xhr.response);
+          } else {
+            reject(
+              new Error(`Error ${xhr.status}: No se pudo obtener el archivo`),
+            );
+          }
+        };
+
+        xhr.onerror = function () {
+          reject(new Error("Error de red al obtener el archivo"));
+        };
+
+        xhr.send();
+      });
 
       if (!blob || blob.size === 0) {
-        throw new Error("El archivo está vacío");
+        throw new Error("El archivo está vacío o no se pudo cargar");
       }
 
       // Determinar tipo MIME correcto
@@ -2218,22 +2233,35 @@ class PCUMedia {
         type: mimeType,
       });
 
-      // Compartir el archivo REAL, no un enlace
-      if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
-        await navigator.share({
-          files: [shareFile],
-          title: targetFile.name,
-        });
-      } else {
-        await navigator.share({
-          files: [shareFile],
-          title: targetFile.name,
-        });
+      console.log("Compartiendo archivo:", {
+        name: shareFile.name,
+        size: shareFile.size,
+        type: shareFile.type,
+      });
+
+      // Verificar si puede compartir archivos
+      if (navigator.canShare && !navigator.canShare({ files: [shareFile] })) {
+        throw new Error(
+          "Este navegador no puede compartir archivos de este tipo",
+        );
       }
+
+      // Compartir el archivo REAL
+      await navigator.share({
+        files: [shareFile],
+        title: targetFile.name,
+      });
+
+      this.showToast({
+        title: "Compartido",
+        message: "Archivo compartido exitosamente",
+        variant: "success",
+      });
     } catch (error) {
       if (error.name === "NotAllowedError" || error.name === "AbortError") {
         return;
       }
+      console.error("Error al compartir:", error);
       this.showToast({
         title: "Error al compartir",
         message: error.message || "No se pudo compartir el archivo",
