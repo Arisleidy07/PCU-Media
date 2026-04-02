@@ -1172,20 +1172,37 @@ class PCUMedia {
       this.openFolderMenu(node, div);
     });
 
-    // Tap prolongado en móvil para mostrar menú
+    // Tap prolongado en móvil para mostrar menú - solo si NO se hace click en nombre
     let lpTimer = null;
+    let touchMoved = false;
     const startLP = (e) => {
+      touchMoved = false;
+      const target = e.target;
+      // No activar long press si toca el nombre de la carpeta o el botón de menú
+      if (
+        target.closest(".tree-name") ||
+        target.closest(".tree-menu-btn") ||
+        target.closest(".tree-chevron")
+      ) {
+        return;
+      }
       lpTimer = window.setTimeout(() => {
-        this.openFolderMenu(node, menuBtn || div);
-      }, 500);
+        if (!touchMoved) {
+          this.openFolderMenu(node, menuBtn || div);
+        }
+      }, 700);
     };
     const cancelLP = () => {
       if (lpTimer) window.clearTimeout(lpTimer);
       lpTimer = null;
     };
+    const markMoved = () => {
+      touchMoved = true;
+      cancelLP();
+    };
     div.addEventListener("touchstart", startLP, { passive: true });
     div.addEventListener("touchend", cancelLP, { passive: true });
-    div.addEventListener("touchmove", cancelLP, { passive: true });
+    div.addEventListener("touchmove", markMoved, { passive: true });
 
     if (hasChildren) {
       const childrenContainer = document.createElement("div");
@@ -2236,7 +2253,11 @@ class PCUMedia {
       }
 
       const blob = await response.blob();
-      console.log("Blob fetched, size:", blob.size);
+      console.log("Blob fetched, size:", blob.size, "type:", blob.type);
+
+      if (!blob || blob.size === 0) {
+        throw new Error("El archivo está vacío o no se pudo obtener");
+      }
 
       const ext = targetFile.name.split(".").pop().toLowerCase();
       const mimeTypes = {
@@ -2245,31 +2266,57 @@ class PCUMedia {
         png: "image/png",
         gif: "image/gif",
         webp: "image/webp",
+        bmp: "image/bmp",
+        svg: "image/svg+xml",
         mp4: "video/mp4",
         webm: "video/webm",
         mov: "video/quicktime",
+        avi: "video/x-msvideo",
       };
+
       const mimeType =
         mimeTypes[ext] || blob.type || "application/octet-stream";
-      const shareFile = new File([blob], targetFile.name, { type: mimeType });
-      console.log(
-        "Created File object:",
-        shareFile.name,
-        shareFile.type,
-        shareFile.size,
-      );
+
+      const shareFile = new File([blob], targetFile.name, {
+        type: mimeType,
+        lastModified: Date.now(),
+      });
+
+      console.log("File for sharing:", {
+        name: shareFile.name,
+        type: shareFile.type,
+        size: shareFile.size,
+        lastModified: shareFile.lastModified,
+      });
+
+      if (shareFile.size === 0) {
+        throw new Error("El archivo no contiene datos");
+      }
 
       if (navigator.canShare && navigator.canShare({ files: [shareFile] })) {
         console.log("Sharing file via native API");
-        await navigator.share({ files: [shareFile] });
-        console.log("Share completed");
-      } else {
-        console.log("File sharing not supported, using URL share");
         await navigator.share({
+          files: [shareFile],
           title: targetFile.name,
-          url: targetFile.url,
         });
-        console.log("URL share completed");
+        console.log("Share completed successfully");
+      } else if (navigator.share) {
+        console.log("File sharing not supported, fallback to download");
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = targetFile.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+        this.showToast({
+          title: "Archivo descargado",
+          message: "Compartir no disponible, archivo descargado",
+          variant: "success",
+        });
+      } else {
+        throw new Error("Compartir no está disponible en este navegador");
       }
     } catch (error) {
       if (error.name === "AbortError") {
@@ -2309,7 +2356,11 @@ class PCUMedia {
       }
 
       const blob = await response.blob();
-      console.log("Blob fetched, size:", blob.size);
+      console.log("Blob fetched, size:", blob.size, "type:", blob.type);
+
+      if (!blob || blob.size === 0) {
+        throw new Error("El archivo está vacío");
+      }
 
       const ext = targetFile.name.split(".").pop().toLowerCase();
       const mimeTypes = {
@@ -2318,9 +2369,11 @@ class PCUMedia {
         png: "image/png",
         gif: "image/gif",
         webp: "image/webp",
+        bmp: "image/bmp",
         mp4: "video/mp4",
         webm: "video/webm",
         mov: "video/quicktime",
+        avi: "video/x-msvideo",
       };
       const mimeType =
         mimeTypes[ext] || blob.type || "application/octet-stream";
@@ -2328,24 +2381,35 @@ class PCUMedia {
 
       const blobUrl = URL.createObjectURL(properBlob);
       const a = document.createElement("a");
+      a.style.display = "none";
       a.href = blobUrl;
       a.download = targetFile.name;
+      a.target = "_self";
+      a.rel = "noopener noreferrer";
+
       document.body.appendChild(a);
-      a.click();
 
       setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      }, 1000);
+        a.click();
+        console.log("Download triggered for:", targetFile.name);
 
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        this.showToast({
-          title: "Descargado",
-          message: `${targetFile.name} guardado`,
-          variant: "success",
-        });
-      }
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+          console.log("Download cleanup completed");
+
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(
+            navigator.userAgent,
+          );
+          if (isMobile) {
+            this.showToast({
+              title: "Descargado",
+              message: `${targetFile.name} guardado en tu dispositivo`,
+              variant: "success",
+            });
+          }
+        }, 1000);
+      }, 100);
 
       console.log("Download completed");
     } catch (error) {
