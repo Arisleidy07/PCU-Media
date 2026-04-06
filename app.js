@@ -2237,13 +2237,6 @@ class PCUMedia {
       return;
     }
 
-    // Mostrar toast inmediatamente para dar feedback
-    this.showToast({
-      title: "Preparando...",
-      message: "Obteniendo archivo para compartir",
-      variant: "success",
-    });
-
     try {
       if (!navigator.share) {
         throw new Error("Compartir no disponible en este navegador");
@@ -2257,7 +2250,6 @@ class PCUMedia {
         arrayBuffer = await response.arrayBuffer();
       } catch (fetchError) {
         // Si falla CORS, usar el proxy del backend
-        console.log("[SHARE] Direct fetch failed, trying proxy...");
         const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
         const response = await fetch(proxyUrl);
         if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
