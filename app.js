@@ -2218,6 +2218,7 @@ class PCUMedia {
 
   async shareFile(file = null) {
     const targetFile = file || this.currentPreviewFile;
+
     if (!targetFile) {
       this.showToast({
         title: "Error",
@@ -2227,16 +2228,35 @@ class PCUMedia {
       return;
     }
 
+    if (!targetFile.url) {
+      this.showToast({
+        title: "Error",
+        message: "El archivo no tiene URL válida",
+        variant: "error",
+      });
+      return;
+    }
+
     try {
       if (!navigator.share) {
-        throw new Error("Compartir no está disponible en este navegador");
+        throw new Error("Compartir no disponible en este navegador");
       }
 
-      // Fetch directly from Firebase Storage URL (not proxy)
-      const response = await fetch(targetFile.url, { mode: "cors" });
-      if (!response.ok) throw new Error("No se pudo obtener el archivo");
+      // Intentar fetch directo primero
+      let arrayBuffer;
+      try {
+        const response = await fetch(targetFile.url, { mode: "cors" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        arrayBuffer = await response.arrayBuffer();
+      } catch (fetchError) {
+        // Si falla CORS, usar el proxy del backend
+        console.log("[SHARE] Direct fetch failed, trying proxy...");
+        const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
+        arrayBuffer = await response.arrayBuffer();
+      }
 
-      const arrayBuffer = await response.arrayBuffer();
       if (!arrayBuffer || arrayBuffer.byteLength === 0) {
         throw new Error("El archivo está vacío");
       }
@@ -2255,31 +2275,17 @@ class PCUMedia {
         avi: "video/x-msvideo",
         heic: "image/heic",
       };
-      const mimeType =
-        mimeMap[ext] ||
-        response.headers.get("content-type") ||
-        "application/octet-stream";
+      const mimeType = mimeMap[ext] || "application/octet-stream";
 
-      // Create a real File from the ArrayBuffer with correct MIME
       const realFile = new File([arrayBuffer], targetFile.name, {
         type: mimeType,
         lastModified: Date.now(),
       });
 
-      console.log(
-        "Share file ready:",
-        realFile.name,
-        realFile.type,
-        realFile.size,
-        "bytes",
-      );
-
       if (navigator.canShare && navigator.canShare({ files: [realFile] })) {
         await navigator.share({ files: [realFile] });
       } else {
-        throw new Error(
-          "Tu navegador no soporta compartir este tipo de archivo",
-        );
+        throw new Error("Navegador no soporta compartir archivos");
       }
     } catch (error) {
       if (error.name === "AbortError") return;
@@ -2294,6 +2300,7 @@ class PCUMedia {
 
   async downloadFile(file = null) {
     const targetFile = file || this.currentPreviewFile;
+
     if (!targetFile) {
       this.showToast({
         title: "Error",
@@ -2303,12 +2310,31 @@ class PCUMedia {
       return;
     }
 
-    try {
-      // Fetch directly from Firebase Storage URL (not proxy)
-      const response = await fetch(targetFile.url, { mode: "cors" });
-      if (!response.ok) throw new Error("No se pudo obtener el archivo");
+    if (!targetFile.url) {
+      this.showToast({
+        title: "Error",
+        message: "El archivo no tiene URL válida",
+        variant: "error",
+      });
+      return;
+    }
 
-      const arrayBuffer = await response.arrayBuffer();
+    try {
+      // Intentar fetch directo primero, si falla usar proxy
+      let arrayBuffer;
+      try {
+        const response = await fetch(targetFile.url, { mode: "cors" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        arrayBuffer = await response.arrayBuffer();
+      } catch (fetchError) {
+        // Fallback: usar proxy del backend
+        console.log("[DOWNLOAD] Direct fetch failed, using proxy...");
+        const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
+        arrayBuffer = await response.arrayBuffer();
+      }
+
       if (!arrayBuffer || arrayBuffer.byteLength === 0) {
         throw new Error("El archivo está vacío");
       }
@@ -2327,17 +2353,13 @@ class PCUMedia {
         avi: "video/x-msvideo",
         heic: "image/heic",
       };
-      const mimeType =
-        mimeMap[ext] ||
-        response.headers.get("content-type") ||
-        "application/octet-stream";
+      const mimeType = mimeMap[ext] || "application/octet-stream";
       const blob = new Blob([arrayBuffer], { type: mimeType });
 
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isAndroid = /Android/i.test(navigator.userAgent);
 
       if (isIOS && navigator.share) {
-        // iOS: download attribute doesn't work, use share API to save
+        // iOS: usar share API
         const realFile = new File([blob], targetFile.name, {
           type: mimeType,
           lastModified: Date.now(),
@@ -2345,13 +2367,13 @@ class PCUMedia {
         if (navigator.canShare && navigator.canShare({ files: [realFile] })) {
           await navigator.share({ files: [realFile] });
         } else {
-          // Fallback: open in new tab so user can long-press to save
+          // Fallback: abrir en nueva pestaña
           const blobUrl = URL.createObjectURL(blob);
           window.open(blobUrl, "_blank");
           setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
         }
       } else {
-        // Desktop and Android: use anchor download
+        // Desktop/Android: anchor download
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.style.display = "none";
@@ -2365,21 +2387,12 @@ class PCUMedia {
           URL.revokeObjectURL(blobUrl);
         }, 2000);
       }
-
-      console.log("Download completed:", targetFile.name, blob.size, "bytes");
     } catch (error) {
-      // Silencioso: usuario canceló el diálogo de compartir/guardar
-      if (
-        error.name === "AbortError" ||
-        error.message?.includes("cancel") ||
-        error.message?.includes("abort")
-      ) {
-        return;
-      }
+      if (error.name === "AbortError") return;
       console.error("Download error:", error);
       this.showToast({
         title: "Error al descargar",
-        message: error.message || "No se pudo descargar el archivo",
+        message: error.message || "No se pudo descargar",
         variant: "error",
       });
     }
