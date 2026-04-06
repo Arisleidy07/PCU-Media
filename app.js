@@ -2237,6 +2237,13 @@ class PCUMedia {
       return;
     }
 
+    // Mostrar toast de preparación inmediatamente
+    this.showToast({
+      title: "Preparando archivo...",
+      message: "Descargando desde el servidor",
+      variant: "success",
+    });
+
     try {
       if (!navigator.share) {
         throw new Error("Compartir no disponible en este navegador");
