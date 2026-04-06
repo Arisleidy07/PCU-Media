@@ -2368,7 +2368,14 @@ class PCUMedia {
 
       console.log("Download completed:", targetFile.name, blob.size, "bytes");
     } catch (error) {
-      if (error.name === "AbortError") return;
+      // Silencioso: usuario canceló el diálogo de compartir/guardar
+      if (
+        error.name === "AbortError" ||
+        error.message?.includes("cancel") ||
+        error.message?.includes("abort")
+      ) {
+        return;
+      }
       console.error("Download error:", error);
       this.showToast({
         title: "Error al descargar",
