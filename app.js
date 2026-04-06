@@ -2237,6 +2237,13 @@ class PCUMedia {
       return;
     }
 
+    // Mostrar toast inmediatamente para dar feedback
+    this.showToast({
+      title: "Preparando...",
+      message: "Obteniendo archivo para compartir",
+      variant: "success",
+    });
+
     try {
       if (!navigator.share) {
         throw new Error("Compartir no disponible en este navegador");
@@ -2357,6 +2364,7 @@ class PCUMedia {
       const blob = new Blob([arrayBuffer], { type: mimeType });
 
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isAndroid = /Android/i.test(navigator.userAgent);
 
       if (isIOS && navigator.share) {
         // iOS: usar share API
@@ -2387,6 +2395,21 @@ class PCUMedia {
           URL.revokeObjectURL(blobUrl);
         }, 2000);
       }
+
+      // Mostrar toast de descarga completada según el dispositivo
+      const deviceType = isIOS
+        ? "teléfono"
+        : isAndroid
+          ? "teléfono"
+          : "computadora";
+      const locationMsg =
+        isIOS || isAndroid ? "galería" : "carpeta de descargas";
+
+      this.showToast({
+        title: "Descarga completada",
+        message: `Revise sus archivos en ${locationMsg}`,
+        variant: "success",
+      });
     } catch (error) {
       if (error.name === "AbortError") return;
       console.error("Download error:", error);
