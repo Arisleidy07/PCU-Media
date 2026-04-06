@@ -2232,12 +2232,6 @@ class PCUMedia {
         throw new Error("Compartir no está disponible en este navegador");
       }
 
-      this.showToast({
-        title: "Preparando...",
-        message: "Obteniendo archivo",
-        variant: "success",
-      });
-
       // Fetch directly from Firebase Storage URL (not proxy)
       const response = await fetch(targetFile.url, { mode: "cors" });
       if (!response.ok) throw new Error("No se pudo obtener el archivo");
@@ -2310,12 +2304,6 @@ class PCUMedia {
     }
 
     try {
-      this.showToast({
-        title: "Descargando...",
-        message: targetFile.name,
-        variant: "success",
-      });
-
       // Fetch directly from Firebase Storage URL (not proxy)
       const response = await fetch(targetFile.url, { mode: "cors" });
       if (!response.ok) throw new Error("No se pudo obtener el archivo");
@@ -2356,21 +2344,11 @@ class PCUMedia {
         });
         if (navigator.canShare && navigator.canShare({ files: [realFile] })) {
           await navigator.share({ files: [realFile] });
-          this.showToast({
-            title: "Guardado",
-            message: `${targetFile.name}`,
-            variant: "success",
-          });
         } else {
           // Fallback: open in new tab so user can long-press to save
           const blobUrl = URL.createObjectURL(blob);
           window.open(blobUrl, "_blank");
           setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-          this.showToast({
-            title: "Archivo abierto",
-            message: "Mantén presionado para guardar",
-            variant: "success",
-          });
         }
       } else {
         // Desktop and Android: use anchor download
@@ -2386,14 +2364,6 @@ class PCUMedia {
           document.body.removeChild(a);
           URL.revokeObjectURL(blobUrl);
         }, 2000);
-
-        if (isAndroid) {
-          this.showToast({
-            title: "Descargado",
-            message: `${targetFile.name} guardado`,
-            variant: "success",
-          });
-        }
       }
 
       console.log("Download completed:", targetFile.name, blob.size, "bytes");

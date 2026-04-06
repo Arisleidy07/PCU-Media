@@ -1883,44 +1883,56 @@ video {
   }
 
   #previewInfo .preview-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
-    margin-top: auto;
-    padding-top: 20px;
+    margin-top: 0;
+    padding-top: 0;
+    width: 100%;
   }
 
   #previewInfo .preview-actions .share-btn,
   #previewInfo .preview-actions .download-btn,
   #previewInfo .preview-actions .edit-btn {
-    padding: 14px 10px;
-    font-size: 13px;
+    padding: 16px 20px;
+    font-size: 15px;
     font-weight: 600;
-    border-radius: 10px;
-    min-height: 52px;
+    border-radius: 12px;
+    min-height: 54px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    background: linear-gradient(
-      135deg,
-      rgba(45, 212, 191, 0.2),
-      rgba(56, 189, 248, 0.2)
-    );
-    border: 1px solid rgba(45, 212, 191, 0.3);
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    gap: 10px;
+    width: 100%;
   }
 
   #previewInfo .preview-actions .edit-btn {
     background: linear-gradient(
       135deg,
-      rgba(139, 92, 246, 0.2),
-      rgba(99, 102, 241, 0.2)
+      rgba(139, 92, 246, 0.9),
+      rgba(99, 102, 241, 0.9)
     );
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+  }
+
+  #previewInfo .preview-actions .share-btn {
+    background: linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0.95),
+      rgba(56, 189, 248, 0.95)
+    );
+    color: white;
+    border: none;
+    box-shadow: 0 4px 14px rgba(45, 212, 191, 0.35);
+  }
+
+  #previewInfo .preview-actions .download-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   .preview-close {
@@ -2162,25 +2174,29 @@ video {
 }
 
 .preview-actions {
-  margin-top: auto;
+  margin-top: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  width: 100%;
 }
 
 .share-btn,
-.download-btn {
-  padding: 12px 16px;
+.download-btn,
+.edit-btn {
+  padding: 14px 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   transition: var(--transition);
+  width: 100%;
+  min-height: 52px;
 }
 
 .share-btn {
@@ -2190,23 +2206,40 @@ video {
     rgba(56, 189, 248, 0.95)
   );
   color: white;
+  box-shadow: 0 4px 14px rgba(45, 212, 191, 0.35);
 }
 
-.share-btn:hover {
-  filter: brightness(1.05);
+.edit-btn {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.9),
+    rgba(99, 102, 241, 0.9)
+  );
+  color: white;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+}
+
+.share-btn:hover,
+.edit-btn:hover {
+  filter: brightness(1.08);
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(45, 212, 191, 0.45);
+}
+
+.edit-btn:hover {
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45);
 }
 
 .download-btn {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .download-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(45, 212, 191, 0.35);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(45, 212, 191, 0.5);
+  transform: translateY(-1px);
 }
 
 /* Animations */
@@ -3414,52 +3447,64 @@ video {
   }
 
   #previewInfo .preview-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
-    margin-top: auto;
-    padding-top: 20px;
+    margin-top: 0;
+    padding-top: 0;
+    width: 100%;
   }
 
   #previewInfo .preview-actions .share-btn,
   #previewInfo .preview-actions .download-btn,
   #previewInfo .preview-actions .edit-btn {
-    padding: 16px 8px;
-    font-size: 13px;
+    padding: 16px 20px;
+    font-size: 16px;
     border-radius: 12px;
-    min-height: 64px;
+    min-height: 56px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    background: linear-gradient(
-      135deg,
-      rgba(45, 212, 191, 0.25),
-      rgba(56, 189, 248, 0.25)
-    );
-    border: 1px solid rgba(45, 212, 191, 0.4);
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
+    gap: 10px;
+    width: 100%;
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   #previewInfo .preview-actions .edit-btn {
     background: linear-gradient(
       135deg,
-      rgba(139, 92, 246, 0.25),
-      rgba(99, 102, 241, 0.25)
+      rgba(139, 92, 246, 0.9),
+      rgba(99, 102, 241, 0.9)
     );
-    border: 1px solid rgba(139, 92, 246, 0.4);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+  }
+
+  #previewInfo .preview-actions .share-btn {
+    background: linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0.95),
+      rgba(56, 189, 248, 0.95)
+    );
+    color: white;
+    border: none;
+    box-shadow: 0 4px 14px rgba(45, 212, 191, 0.35);
+  }
+
+  #previewInfo .preview-actions .download-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   #previewInfo .preview-actions .share-btn svg,
   #previewInfo .preview-actions .download-btn svg,
   #previewInfo .preview-actions .edit-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
   }
 
   .preview-close {
