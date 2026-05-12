@@ -2237,26 +2237,19 @@ class PCUMedia {
       return;
     }
 
-    // Mostrar toast de preparación inmediatamente
-    this.showToast({
-      title: "Preparando archivo...",
-      message: "Descargando desde el servidor",
-      variant: "success",
-    });
-
     try {
       if (!navigator.share) {
         throw new Error("Compartir no disponible en este navegador");
       }
 
-      // Intentar fetch directo primero
+      // Optimizado: fetch directo sin delays
       let arrayBuffer;
       try {
         const response = await fetch(targetFile.url, { mode: "cors" });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         arrayBuffer = await response.arrayBuffer();
       } catch (fetchError) {
-        // Si falla CORS, usar el proxy del backend
+        // Fallback rápido con proxy
         const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
         const response = await fetch(proxyUrl);
         if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
@@ -2283,11 +2276,13 @@ class PCUMedia {
       };
       const mimeType = mimeMap[ext] || "application/octet-stream";
 
+      // Archivo real para compartir
       const realFile = new File([arrayBuffer], targetFile.name, {
         type: mimeType,
         lastModified: Date.now(),
       });
 
+      // Compartir inmediatamente
       if (navigator.canShare && navigator.canShare({ files: [realFile] })) {
         await navigator.share({ files: [realFile] });
       } else {
@@ -2326,15 +2321,13 @@ class PCUMedia {
     }
 
     try {
-      // Intentar fetch directo primero, si falla usar proxy
+      // Obtener archivo sin delays
       let arrayBuffer;
       try {
         const response = await fetch(targetFile.url, { mode: "cors" });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         arrayBuffer = await response.arrayBuffer();
       } catch (fetchError) {
-        // Fallback: usar proxy del backend
-        console.log("[DOWNLOAD] Direct fetch failed, using proxy...");
         const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
         const response = await fetch(proxyUrl);
         if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
@@ -2365,22 +2358,24 @@ class PCUMedia {
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isAndroid = /Android/i.test(navigator.userAgent);
 
-      if (isIOS && navigator.share) {
-        // iOS: usar share API
-        const realFile = new File([blob], targetFile.name, {
-          type: mimeType,
-          lastModified: Date.now(),
-        });
-        if (navigator.canShare && navigator.canShare({ files: [realFile] })) {
-          await navigator.share({ files: [realFile] });
-        } else {
-          // Fallback: abrir en nueva pestaña
-          const blobUrl = URL.createObjectURL(blob);
-          window.open(blobUrl, "_blank");
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-        }
+      // Descarga directa SIN usar share API
+      if (isIOS) {
+        // iOS: crear link temporal para descarga
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.style.display = "none";
+        a.href = blobUrl;
+        a.download = targetFile.name;
+        a.setAttribute("target", "_blank");
+        document.body.appendChild(a);
+        a.click();
+
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+        }, 1000);
       } else {
-        // Desktop/Android: anchor download
+        // Desktop/Android: descarga directa
         const blobUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.style.display = "none";
@@ -2392,18 +2387,12 @@ class PCUMedia {
         setTimeout(() => {
           document.body.removeChild(a);
           URL.revokeObjectURL(blobUrl);
-        }, 2000);
+        }, 1000);
       }
 
-      // Mostrar toast de descarga completada según el dispositivo
-      const deviceType = isIOS
-        ? "teléfono"
-        : isAndroid
-          ? "teléfono"
-          : "computadora";
+      // Toast de éxito
       const locationMsg =
         isIOS || isAndroid ? "galería" : "carpeta de descargas";
-
       this.showToast({
         title: "Descarga completada",
         message: `Revise sus archivos en ${locationMsg}`,
