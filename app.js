@@ -1969,9 +1969,12 @@ class PCUMedia {
     // Set file info
     fileName.textContent = file.name;
 
-    // Set media content - SIN ESTILOS INLINE
+    // Reset share state para este archivo
+    this._shareInProgress = false;
+
+    // Set media content
     if (file.type === "video") {
-      container.innerHTML = `<video src="${file.url}" controls autoplay muted loop playsinline style="width: 100%; height: 100%; object-fit: contain;"></video>`;
+      container.innerHTML = `<video src="${file.url}" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;max-height:100%;"></video>`;
     } else if (file.type === "image") {
       container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="cursor: pointer;">`;
 
@@ -2034,11 +2037,6 @@ class PCUMedia {
         e.stopPropagation();
         this.shareFile();
       });
-      newShareBtn.addEventListener("touchend", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setTimeout(() => this.shareFile(), 50);
-      });
     }
 
     if (downloadBtn) {
@@ -2048,11 +2046,6 @@ class PCUMedia {
         e.preventDefault();
         e.stopPropagation();
         this.downloadFile();
-      });
-      newDownloadBtn.addEventListener("touchend", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setTimeout(() => this.downloadFile(), 50);
       });
     }
 
@@ -2182,6 +2175,7 @@ class PCUMedia {
     const modal = document.getElementById("previewModal");
     modal.classList.remove("active");
     document.body.style.overflow = "";
+    this._shareInProgress = false;
     // Reset edit mode when closing
     this.setPreviewEditMode(false);
 
@@ -2193,9 +2187,14 @@ class PCUMedia {
   }
 
   async shareFile(file = null) {
+    // Guard: una sola ejecucion a la vez
+    if (this._shareInProgress) return;
+    this._shareInProgress = true;
+
     const targetFile = file || this.currentPreviewFile;
 
-    if (!targetFile) {
+    if (!targetFile || !targetFile.url) {
+      this._shareInProgress = false;
       this.showToast({
         title: "Error",
         message: "No hay archivo para compartir",
@@ -2204,55 +2203,60 @@ class PCUMedia {
       return;
     }
 
-    if (!targetFile.url) {
-      this.showToast({
-        title: "Error",
-        message: "El archivo no tiene URL válida",
-        variant: "error",
-      });
+    if (!navigator.share) {
+      this._shareInProgress = false;
+      try {
+        await navigator.clipboard.writeText(targetFile.url);
+        this.showToast({
+          title: "Enlace copiado",
+          message: "URL copiada al portapapeles",
+          variant: "success",
+        });
+      } catch {
+        this.showToast({
+          title: "Sin soporte",
+          message: "Compartir no disponible en este navegador",
+          variant: "error",
+        });
+      }
       return;
     }
 
-    // Feedback inmediato mientras se descarga el archivo
+    try {
+      // Intento 1: compartir URL (instantaneo, sin descarga)
+      await navigator.share({
+        title: targetFile.name,
+        url: targetFile.url,
+      });
+    } catch (err) {
+      if (err.name === "AbortError") {
+        // Usuario canceló - ok
+      } else {
+        // Intento 2: compartir como archivo (fallback)
+        await this._shareAsFile(targetFile);
+      }
+    } finally {
+      this._shareInProgress = false;
+    }
+  }
+
+  async _shareAsFile(targetFile) {
     const shareBtn = document.getElementById("shareBtn");
-    const origLabel = shareBtn ? shareBtn.innerHTML : null;
+    const origHTML = shareBtn ? shareBtn.innerHTML : null;
     if (shareBtn) {
       shareBtn.disabled = true;
       shareBtn.style.opacity = "0.6";
-      shareBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 0.8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Preparando...`;
+      shareBtn.textContent = "Preparando...";
     }
-    if (!document.getElementById("_spinStyle")) {
-      const s = document.createElement("style");
-      s.id = "_spinStyle";
-      s.textContent =
-        "@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}";
-      document.head.appendChild(s);
-    }
-
-    const restoreBtn = () => {
-      if (shareBtn && origLabel !== null) {
-        shareBtn.disabled = false;
-        shareBtn.style.opacity = "";
-        shareBtn.innerHTML = origLabel;
-      }
-    };
-
     try {
-      if (!navigator.share) {
-        throw new Error("Compartir no disponible en este navegador");
-      }
-
-      // Usar proxy directamente para evitar CORS
       const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
       const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const arrayBuffer = await response.arrayBuffer();
+      if (!arrayBuffer || arrayBuffer.byteLength === 0)
+        throw new Error("Archivo vacío");
 
-      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-        throw new Error("El archivo está vacío");
-      }
-
-      const ext = targetFile.name.split(".").pop().toLowerCase();
+      const ext = (targetFile.name || "").split(".").pop().toLowerCase();
       const mimeMap = {
         jpg: "image/jpeg",
         jpeg: "image/jpeg",
@@ -2267,28 +2271,30 @@ class PCUMedia {
         heic: "image/heic",
       };
       const mimeType = mimeMap[ext] || "application/octet-stream";
-
-      // Archivo real para compartir
       const realFile = new File([arrayBuffer], targetFile.name, {
         type: mimeType,
         lastModified: Date.now(),
       });
 
-      // Compartir inmediatamente
       if (navigator.canShare && navigator.canShare({ files: [realFile] })) {
         await navigator.share({ files: [realFile] });
-        restoreBtn();
       } else {
         throw new Error("Navegador no soporta compartir archivos");
       }
-    } catch (error) {
-      restoreBtn();
-      if (error.name === "AbortError") return;
-      this.showToast({
-        title: "Error al compartir",
-        message: error.message || "No se pudo compartir",
-        variant: "error",
-      });
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        this.showToast({
+          title: "Error al compartir",
+          message: err.message || "No se pudo compartir",
+          variant: "error",
+        });
+      }
+    } finally {
+      if (shareBtn && origHTML !== null) {
+        shareBtn.disabled = false;
+        shareBtn.style.opacity = "";
+        shareBtn.innerHTML = origHTML;
+      }
     }
   }
 
