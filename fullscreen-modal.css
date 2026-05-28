@@ -68,9 +68,4 @@
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
-/* Solo mostrar en dispositivos móviles */
-@media (min-width: 769px) {
-  .fullscreen-image-modal {
-    display: none !important;
-  }
-}
+/* Fullscreen image available on all devices */

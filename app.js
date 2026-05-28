@@ -1217,7 +1217,7 @@ class PCUMedia {
     this.updateFolderToolbar();
 
     // Cerrar sidebar automáticamente en móvil
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 980) {
       this.toggleSidebar(false);
     }
   }
@@ -1456,26 +1456,19 @@ class PCUMedia {
       mediaContainer.insertAdjacentHTML("beforeend", docIndicator);
     }
 
-    // Título directamente sobre la imagen, sin contenedor adicional
-    const fileName =
-      file.type !== "video"
-        ? `<div class="file-name">${this.escapeHtml(file.name)}</div>`
-        : "";
-
-    // Agregar título directamente al media-container
-    if (fileName) {
-      mediaContainer.innerHTML += fileName;
-    }
+    // Título siempre visible en la parte inferior de la tarjeta
+    const fileName = `<div class="file-name">${this.escapeHtml(file.name)}</div>`;
+    mediaContainer.insertAdjacentHTML("beforeend", fileName);
 
     // Actions container - oculto, solo menu-btn visible
     const actionsContainer = document.createElement("div");
     actionsContainer.className = "actions-container";
     actionsContainer.innerHTML = `
-      <button class="action-btn menu-btn" type="button">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="5" r="1"></circle>
-          <circle cx="12" cy="12" r="1"></circle>
-          <circle cx="12" cy="19" r="1"></circle>
+      <button class="action-btn menu-btn" type="button" aria-label="Opciones">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="5" r="2"></circle>
+          <circle cx="12" cy="12" r="2"></circle>
+          <circle cx="12" cy="19" r="2"></circle>
         </svg>
       </button>
     `;
@@ -1487,10 +1480,8 @@ class PCUMedia {
     // Make entire card clickable para abrir preview - arreglado para móvil
     div.style.cursor = "pointer";
 
-    // Función mejorada para manejar clicks en móvil
+    // Manejar clicks en la tarjeta
     const handleCardClick = (e) => {
-      console.log("Card clicked", e.target); // Debug
-
       const t = e.target;
 
       // Prevenir si el click es en botón de acción o sus hijos
@@ -1505,14 +1496,11 @@ class PCUMedia {
           t.classList.contains("menu-btn") ||
           t.closest(".menu-btn"))
       ) {
-        console.log("Click on action button, ignoring"); // Debug
         e.stopPropagation();
         e.preventDefault();
         return;
       }
 
-      console.log("Opening preview for:", file.name); // Debug
-      // Abrir preview
       this.openPreview(file);
     };
 
@@ -1609,44 +1597,38 @@ class PCUMedia {
     return div;
   }
 
-  // Posicionar un menú contextual de forma inteligente (mobile-safe)
+  // Posicionar un menú contextual junto al botón que lo abrió
   _positionMenu(menu, anchorEl) {
+    const r = anchorEl.getBoundingClientRect();
     const isMobile = window.innerWidth <= 768;
-    if (isMobile) {
-      // En móvil: fijo en la parte inferior, ancho completo
-      menu.style.position = "fixed";
-      menu.style.left = "12px";
-      menu.style.right = "12px";
-      menu.style.bottom = "12px";
-      menu.style.top = "auto";
-      menu.style.width = "auto";
-    } else {
-      const r = anchorEl.getBoundingClientRect();
-      const menuW = 200;
-      const menuH = 160;
+    const menuW = isMobile ? Math.min(220, window.innerWidth - 24) : 200;
+    const menuH = 220;
 
-      // Posicionar junto al botón de tres puntos (lado derecho)
-      let left = r.right - menuW + 5;
-      let top = r.top;
+    // Intentar abrir debajo del botón, alineado a su borde derecho
+    let left = r.right - menuW;
+    let top = r.bottom + 6;
 
-      // Ajustar si se sale de la pantalla
-      if (left < 8) left = 8;
-      if (left + menuW > window.innerWidth - 8) {
-        left = r.left - menuW - 5;
-      }
-      if (top + menuH > window.innerHeight - 8) {
-        top = window.innerHeight - menuH - 8;
-      }
-      if (top < 8) top = 8;
-
-      menu.style.position = "fixed";
-      menu.style.top = top + "px";
-      menu.style.left = left + "px";
-      menu.style.right = "auto";
-      menu.style.bottom = "auto";
-      menu.style.width = menuW + "px";
+    // Si se sale por la derecha, mover a la izquierda
+    if (left + menuW > window.innerWidth - 8) {
+      left = window.innerWidth - menuW - 8;
     }
-    menu.style.zIndex = "1001";
+    // Si se sale por la izquierda
+    if (left < 8) left = 8;
+
+    // Si se sale por abajo, abrir arriba del botón
+    if (top + menuH > window.innerHeight - 8) {
+      top = r.top - menuH - 6;
+    }
+    // Si se sale por arriba
+    if (top < 8) top = 8;
+
+    menu.style.position = "fixed";
+    menu.style.top = top + "px";
+    menu.style.left = left + "px";
+    menu.style.right = "auto";
+    menu.style.bottom = "auto";
+    menu.style.width = menuW + "px";
+    menu.style.zIndex = "9999";
   }
 
   // Menú contextual por item (renombrar, mover, eliminar)
@@ -1998,9 +1980,7 @@ class PCUMedia {
       if (img) {
         img.addEventListener("click", (e) => {
           e.stopPropagation();
-          if (window.innerWidth <= 768) {
-            openFullscreenImage(file.url);
-          }
+          openFullscreenImage(file.url);
         });
       }
     } else {
@@ -2052,13 +2032,11 @@ class PCUMedia {
       newShareBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Share button clicked!");
         this.shareFile();
       });
       newShareBtn.addEventListener("touchend", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Share button touched!");
         setTimeout(() => this.shareFile(), 50);
       });
     }
@@ -2069,13 +2047,11 @@ class PCUMedia {
       newDownloadBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Download button clicked!");
         this.downloadFile();
       });
       newDownloadBtn.addEventListener("touchend", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Download button touched!");
         setTimeout(() => this.downloadFile(), 50);
       });
     }
@@ -2237,24 +2213,40 @@ class PCUMedia {
       return;
     }
 
+    // Feedback inmediato mientras se descarga el archivo
+    const shareBtn = document.getElementById("shareBtn");
+    const origLabel = shareBtn ? shareBtn.innerHTML : null;
+    if (shareBtn) {
+      shareBtn.disabled = true;
+      shareBtn.style.opacity = "0.6";
+      shareBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 0.8s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Preparando...`;
+    }
+    if (!document.getElementById("_spinStyle")) {
+      const s = document.createElement("style");
+      s.id = "_spinStyle";
+      s.textContent =
+        "@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}";
+      document.head.appendChild(s);
+    }
+
+    const restoreBtn = () => {
+      if (shareBtn && origLabel !== null) {
+        shareBtn.disabled = false;
+        shareBtn.style.opacity = "";
+        shareBtn.innerHTML = origLabel;
+      }
+    };
+
     try {
       if (!navigator.share) {
         throw new Error("Compartir no disponible en este navegador");
       }
 
-      // Optimizado: fetch directo sin delays
-      let arrayBuffer;
-      try {
-        const response = await fetch(targetFile.url, { mode: "cors" });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        arrayBuffer = await response.arrayBuffer();
-      } catch (fetchError) {
-        // Fallback rápido con proxy
-        const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
-        arrayBuffer = await response.arrayBuffer();
-      }
+      // Usar proxy directamente para evitar CORS
+      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
+      const arrayBuffer = await response.arrayBuffer();
 
       if (!arrayBuffer || arrayBuffer.byteLength === 0) {
         throw new Error("El archivo está vacío");
@@ -2285,12 +2277,13 @@ class PCUMedia {
       // Compartir inmediatamente
       if (navigator.canShare && navigator.canShare({ files: [realFile] })) {
         await navigator.share({ files: [realFile] });
+        restoreBtn();
       } else {
         throw new Error("Navegador no soporta compartir archivos");
       }
     } catch (error) {
+      restoreBtn();
       if (error.name === "AbortError") return;
-      console.error("Share error:", error);
       this.showToast({
         title: "Error al compartir",
         message: error.message || "No se pudo compartir",
@@ -3227,25 +3220,18 @@ class PCUMedia {
     if (shouldOpen) {
       sidebar.classList.add("open");
       overlay.classList.add("active");
-      // Bloquear scroll del body SIN cambiar fondo
-      if (window.innerWidth <= 768) {
+      // Bloquear scroll del body sin saltar la página
+      if (window.innerWidth <= 980) {
+        this._savedScrollY = window.scrollY || window.pageYOffset || 0;
         document.body.style.overflow = "hidden";
-        document.body.style.position = "fixed";
-        document.body.style.width = "100%";
-        document.body.style.top = "0";
-        document.body.style.left = "0";
-        // No cambiar backgroundColor, mantener el diseño original
       }
     } else {
       sidebar.classList.remove("open");
       overlay.classList.remove("active");
-      // Restaurar scroll del body
-      if (window.innerWidth <= 768) {
+      // Restaurar scroll del body sin saltar
+      if (window.innerWidth <= 980) {
         document.body.style.overflow = "";
-        document.body.style.position = "";
-        document.body.style.width = "";
-        document.body.style.top = "";
-        document.body.style.left = "";
+        // No modificar scroll position - el overlay ya impedía el scroll
       }
     }
   }
