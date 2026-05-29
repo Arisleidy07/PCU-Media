@@ -2205,39 +2205,17 @@ class PCUMedia {
 
     if (!navigator.share) {
       this._shareInProgress = false;
-      try {
-        await navigator.clipboard.writeText(targetFile.url);
-        this.showToast({
-          title: "Enlace copiado",
-          message: "URL copiada al portapapeles",
-          variant: "success",
-        });
-      } catch {
-        this.showToast({
-          title: "Sin soporte",
-          message: "Compartir no disponible en este navegador",
-          variant: "error",
-        });
-      }
+      this.showToast({
+        title: "Sin soporte",
+        message: "Compartir archivos no disponible en este navegador",
+        variant: "error",
+      });
       return;
     }
 
-    try {
-      // Intento 1: compartir URL (instantaneo, sin descarga)
-      await navigator.share({
-        title: targetFile.name,
-        url: targetFile.url,
-      });
-    } catch (err) {
-      if (err.name === "AbortError") {
-        // Usuario canceló - ok
-      } else {
-        // Intento 2: compartir como archivo (fallback)
-        await this._shareAsFile(targetFile);
-      }
-    } finally {
-      this._shareInProgress = false;
-    }
+    // Siempre compartir como archivo descargado directamente
+    await this._shareAsFile(targetFile);
+    this._shareInProgress = false;
   }
 
   async _shareAsFile(targetFile) {
@@ -2319,6 +2297,23 @@ class PCUMedia {
       return;
     }
 
+    // Feedback visual en el botón de descargar
+    const downloadBtn = document.getElementById("downloadBtn");
+    const origHTML = downloadBtn ? downloadBtn.innerHTML : null;
+    if (downloadBtn) {
+      downloadBtn.disabled = true;
+      downloadBtn.style.opacity = "0.7";
+      downloadBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 0.8s linear infinite;margin-right:6px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Descargando...`;
+    }
+
+    const restoreBtn = () => {
+      if (downloadBtn && origHTML !== null) {
+        downloadBtn.disabled = false;
+        downloadBtn.style.opacity = "";
+        downloadBtn.innerHTML = origHTML;
+      }
+    };
+
     try {
       // Obtener archivo sin delays
       let arrayBuffer;
@@ -2397,9 +2392,10 @@ class PCUMedia {
         message: `Revise sus archivos en ${locationMsg}`,
         variant: "success",
       });
+      restoreBtn();
     } catch (error) {
+      restoreBtn();
       if (error.name === "AbortError") return;
-      console.error("Download error:", error);
       this.showToast({
         title: "Error al descargar",
         message: error.message || "No se pudo descargar",

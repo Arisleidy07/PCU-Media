@@ -364,7 +364,8 @@ if (process.env.VERCEL !== "1") {
       `PCU Media Server con Firebase Storage corriendo en puerto ${PORT}`,
     );
     console.log(
-      "Archivos guardados en Firebase Storage (bucket): " + bucket.name,
+      "Archivos guardados en Firebase Storage (bucket): " +
+        (bucket?.name ?? "pendiente de inicialización"),
     );
   });
 }
