@@ -748,15 +748,7 @@ class PCUMedia {
       });
     }
 
-    const shareBtn = document.getElementById("shareBtn");
-    if (shareBtn) {
-      shareBtn.addEventListener("click", () => this.shareFile());
-    }
-
-    const downloadBtn = document.getElementById("downloadBtn");
-    if (downloadBtn) {
-      downloadBtn.addEventListener("click", () => this.downloadFile());
-    }
+    // share/download listeners son gestionados dentro de openPreview() para evitar duplicados
 
     uploadPreviewArea.addEventListener("click", () => uploadFileInput.click());
     uploadFileInput.addEventListener("change", (e) => {
@@ -1969,12 +1961,26 @@ class PCUMedia {
     // Set file info
     fileName.textContent = file.name;
 
-    // Reset share state para este archivo
+    // Reset COMPLETO del estado de share al cambiar archivo/modal
     this._shareInProgress = false;
+    if (this._shareAbortController) {
+      try {
+        this._shareAbortController.abort();
+      } catch (_) {}
+      this._shareAbortController = null;
+    }
+    // Restaurar shareBtn por si quedó deshabilitado
+    const prevShareBtn = document.getElementById("shareBtn");
+    if (prevShareBtn) {
+      prevShareBtn.disabled = false;
+      prevShareBtn.style.opacity = "";
+      if (prevShareBtn._origHTML)
+        prevShareBtn.innerHTML = prevShareBtn._origHTML;
+    }
 
     // Set media content
     if (file.type === "video") {
-      container.innerHTML = `<video src="${file.url}" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;max-height:100%;"></video>`;
+      container.innerHTML = `<video src="${file.url}" controls playsinline preload="metadata" controlsList="nodownload" style="width:100%;height:100%;object-fit:contain;max-height:100%;display:block;"></video>`;
     } else if (file.type === "image") {
       container.innerHTML = `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" style="cursor: pointer;">`;
 
@@ -2025,44 +2031,55 @@ class PCUMedia {
     // Ensure edit UI starts hidden pero mostrar siempre el bloque de info
     this.setPreviewEditMode(false);
 
-    // Re-attach share and download event listeners to ensure they work
+    // Re-attach share and download event listeners (clonar para eliminar listeners viejos)
     const shareBtn = document.getElementById("shareBtn");
     const downloadBtn = document.getElementById("downloadBtn");
 
     if (shareBtn) {
       const newShareBtn = shareBtn.cloneNode(true);
+      newShareBtn._origHTML = newShareBtn.innerHTML;
       shareBtn.parentNode.replaceChild(newShareBtn, shareBtn);
-      newShareBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.shareFile();
-      });
+      newShareBtn.addEventListener(
+        "click",
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.shareFile();
+        },
+        { once: false },
+      );
     }
 
     if (downloadBtn) {
       const newDownloadBtn = downloadBtn.cloneNode(true);
       downloadBtn.parentNode.replaceChild(newDownloadBtn, downloadBtn);
-      newDownloadBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.downloadFile();
-      });
+      newDownloadBtn.addEventListener(
+        "click",
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.downloadFile();
+        },
+        { once: false },
+      );
     }
 
-    // Add click handler to media area for full-screen view
+    // Click handler en el área de media — solo para imágenes
+    // Los videos tienen sus propios controles nativos; no interceptar sus clics
     const mediaArea = document.querySelector(".preview-media");
     if (mediaArea) {
-      // Remove existing listener to avoid duplicates
       mediaArea.removeEventListener("click", this._mediaClickHandler);
       this._mediaClickHandler = (e) => {
+        // Nunca interceptar clics dentro del elemento <video>
+        if (
+          e.target &&
+          (e.target.tagName === "VIDEO" || e.target.closest("video"))
+        )
+          return;
         e.stopPropagation();
-
-        // Check if mobile device
-        if (window.innerWidth <= 768 && file.type === "image") {
-          // Open fullscreen image modal on mobile
+        if (file.type === "image") {
           openFullscreenImage(file.url);
-        } else {
-          // Open full-screen media view on desktop
+        } else if (file.type !== "video") {
           this.openFullScreenMedia(file);
         }
       };
@@ -2175,7 +2192,20 @@ class PCUMedia {
     const modal = document.getElementById("previewModal");
     modal.classList.remove("active");
     document.body.style.overflow = "";
+    // Reset COMPLETO del estado de share al cerrar modal
     this._shareInProgress = false;
+    if (this._shareAbortController) {
+      try {
+        this._shareAbortController.abort();
+      } catch (_) {}
+      this._shareAbortController = null;
+    }
+    const shareBtn = document.getElementById("shareBtn");
+    if (shareBtn) {
+      shareBtn.disabled = false;
+      shareBtn.style.opacity = "";
+      if (shareBtn._origHTML) shareBtn.innerHTML = shareBtn._origHTML;
+    }
     // Reset edit mode when closing
     this.setPreviewEditMode(false);
 
@@ -2187,8 +2217,23 @@ class PCUMedia {
   }
 
   async shareFile(file = null) {
-    // Guard: una sola ejecucion a la vez
-    if (this._shareInProgress) return;
+    // Guard: una sola ejecucion a la vez — reset inmediato si ya está en progreso
+    if (this._shareInProgress) {
+      this._shareInProgress = false;
+      if (this._shareAbortController) {
+        try {
+          this._shareAbortController.abort();
+        } catch (_) {}
+        this._shareAbortController = null;
+      }
+      const prevBtn = document.getElementById("shareBtn");
+      if (prevBtn) {
+        prevBtn.disabled = false;
+        prevBtn.style.opacity = "";
+        if (prevBtn._origHTML) prevBtn.innerHTML = prevBtn._origHTML;
+      }
+      return;
+    }
     this._shareInProgress = true;
 
     const targetFile = file || this.currentPreviewFile;
@@ -2205,59 +2250,104 @@ class PCUMedia {
 
     if (!navigator.share) {
       this._shareInProgress = false;
-      this.showToast({
-        title: "Sin soporte",
-        message: "Compartir archivos no disponible en este navegador",
-        variant: "error",
-      });
+      // Fallback: copiar URL al portapapeles
+      try {
+        await navigator.clipboard.writeText(targetFile.url);
+        this.showToast({
+          title: "Enlace copiado",
+          message: "URL copiada al portapapeles",
+          variant: "success",
+        });
+      } catch (_) {
+        this.showToast({
+          title: "Sin soporte",
+          message: "Compartir no disponible en este navegador",
+          variant: "error",
+        });
+      }
       return;
     }
 
-    // Siempre compartir como archivo descargado directamente
     await this._shareAsFile(targetFile);
     this._shareInProgress = false;
+    this._shareAbortController = null;
   }
 
   async _shareAsFile(targetFile) {
     const shareBtn = document.getElementById("shareBtn");
     const origHTML = shareBtn ? shareBtn.innerHTML : null;
     if (shareBtn) {
+      if (!shareBtn._origHTML) shareBtn._origHTML = origHTML;
       shareBtn.disabled = true;
       shareBtn.style.opacity = "0.6";
-      shareBtn.textContent = "Preparando...";
+      shareBtn.textContent = "Compartiendo...";
     }
+
+    const ext = (targetFile.name || "").split(".").pop().toLowerCase();
+    const mimeMap = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      webp: "image/webp",
+      bmp: "image/bmp",
+      mp4: "video/mp4",
+      webm: "video/webm",
+      mov: "video/quicktime",
+      avi: "video/x-msvideo",
+      heic: "image/heic",
+    };
+    const mimeType = mimeMap[ext] || "application/octet-stream";
+
+    const restoreBtn = () => {
+      if (shareBtn) {
+        shareBtn.disabled = false;
+        shareBtn.style.opacity = "";
+        if (shareBtn._origHTML) shareBtn.innerHTML = shareBtn._origHTML;
+      }
+    };
+
     try {
-      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const arrayBuffer = await response.arrayBuffer();
+      // Intentar primero fetch directo (CORS) — más rápido
+      let arrayBuffer = null;
+      const abortCtrl = new AbortController();
+      this._shareAbortController = abortCtrl;
+
+      try {
+        const resp = await fetch(targetFile.url, {
+          signal: abortCtrl.signal,
+          mode: "cors",
+        });
+        if (resp.ok) arrayBuffer = await resp.arrayBuffer();
+      } catch (directErr) {
+        if (directErr.name === "AbortError") {
+          restoreBtn();
+          return;
+        }
+        // Fallar silenciosamente y usar proxy
+      }
+
+      // Fallback: proxy del servidor
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
+        const resp2 = await fetch(proxyUrl, { signal: abortCtrl.signal });
+        if (!resp2.ok) throw new Error(`Error HTTP ${resp2.status}`);
+        arrayBuffer = await resp2.arrayBuffer();
+      }
+
       if (!arrayBuffer || arrayBuffer.byteLength === 0)
         throw new Error("Archivo vacío");
 
-      const ext = (targetFile.name || "").split(".").pop().toLowerCase();
-      const mimeMap = {
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        png: "image/png",
-        gif: "image/gif",
-        webp: "image/webp",
-        bmp: "image/bmp",
-        mp4: "video/mp4",
-        webm: "video/webm",
-        mov: "video/quicktime",
-        avi: "video/x-msvideo",
-        heic: "image/heic",
-      };
-      const mimeType = mimeMap[ext] || "application/octet-stream";
       const realFile = new File([arrayBuffer], targetFile.name, {
         type: mimeType,
         lastModified: Date.now(),
       });
 
+      // Intentar compartir como archivo; fallback a URL
       if (navigator.canShare && navigator.canShare({ files: [realFile] })) {
         await navigator.share({ files: [realFile] });
       } else {
-        throw new Error("Navegador no soporta compartir archivos");
+        await navigator.share({ title: targetFile.name, url: targetFile.url });
       }
     } catch (err) {
       if (err.name !== "AbortError") {
@@ -2268,11 +2358,7 @@ class PCUMedia {
         });
       }
     } finally {
-      if (shareBtn && origHTML !== null) {
-        shareBtn.disabled = false;
-        shareBtn.style.opacity = "";
-        shareBtn.innerHTML = origHTML;
-      }
+      restoreBtn();
     }
   }
 
