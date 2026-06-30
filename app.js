@@ -1961,23 +1961,6 @@ class PCUMedia {
     // Set file info
     fileName.textContent = file.name;
 
-    // Reset COMPLETO del estado de share al cambiar archivo/modal
-    this._shareInProgress = false;
-    if (this._shareAbortController) {
-      try {
-        this._shareAbortController.abort();
-      } catch (_) {}
-      this._shareAbortController = null;
-    }
-    // Restaurar shareBtn por si quedó deshabilitado
-    const prevShareBtn = document.getElementById("shareBtn");
-    if (prevShareBtn) {
-      prevShareBtn.disabled = false;
-      prevShareBtn.style.opacity = "";
-      if (prevShareBtn._origHTML)
-        prevShareBtn.innerHTML = prevShareBtn._origHTML;
-    }
-
     // Set media content
     if (file.type === "video") {
       container.innerHTML = `<video src="${file.url}" controls playsinline preload="metadata" controlsList="nodownload" style="width:100%;height:100%;object-fit:contain;max-height:100%;display:block;"></video>`;
@@ -2192,20 +2175,6 @@ class PCUMedia {
     const modal = document.getElementById("previewModal");
     modal.classList.remove("active");
     document.body.style.overflow = "";
-    // Reset COMPLETO del estado de share al cerrar modal
-    this._shareInProgress = false;
-    if (this._shareAbortController) {
-      try {
-        this._shareAbortController.abort();
-      } catch (_) {}
-      this._shareAbortController = null;
-    }
-    const shareBtn = document.getElementById("shareBtn");
-    if (shareBtn) {
-      shareBtn.disabled = false;
-      shareBtn.style.opacity = "";
-      if (shareBtn._origHTML) shareBtn.innerHTML = shareBtn._origHTML;
-    }
     // Reset edit mode when closing
     this.setPreviewEditMode(false);
 
@@ -2217,29 +2186,9 @@ class PCUMedia {
   }
 
   async shareFile(file = null) {
-    // Guard: una sola ejecucion a la vez — reset inmediato si ya está en progreso
-    if (this._shareInProgress) {
-      this._shareInProgress = false;
-      if (this._shareAbortController) {
-        try {
-          this._shareAbortController.abort();
-        } catch (_) {}
-        this._shareAbortController = null;
-      }
-      const prevBtn = document.getElementById("shareBtn");
-      if (prevBtn) {
-        prevBtn.disabled = false;
-        prevBtn.style.opacity = "";
-        if (prevBtn._origHTML) prevBtn.innerHTML = prevBtn._origHTML;
-      }
-      return;
-    }
-    this._shareInProgress = true;
-
     const targetFile = file || this.currentPreviewFile;
 
     if (!targetFile || !targetFile.url) {
-      this._shareInProgress = false;
       this.showToast({
         title: "Error",
         message: "No hay archivo para compartir",
@@ -2249,8 +2198,6 @@ class PCUMedia {
     }
 
     if (!navigator.share) {
-      this._shareInProgress = false;
-      // Fallback: copiar URL al portapapeles
       try {
         await navigator.clipboard.writeText(targetFile.url);
         this.showToast({
@@ -2268,19 +2215,44 @@ class PCUMedia {
       return;
     }
 
-    await this._shareAsFile(targetFile);
-    this._shareInProgress = false;
-    this._shareAbortController = null;
-  }
+    let blob = null;
 
-  async _shareAsFile(targetFile) {
-    const shareBtn = document.getElementById("shareBtn");
-    const origHTML = shareBtn ? shareBtn.innerHTML : null;
-    if (shareBtn) {
-      if (!shareBtn._origHTML) shareBtn._origHTML = origHTML;
-      shareBtn.disabled = true;
-      shareBtn.style.opacity = "0.6";
-      shareBtn.textContent = "Compartiendo...";
+    // Para imágenes: usar canvas para obtener blob instantáneo del DOM
+    const container = document.getElementById("previewContainer");
+    if (container && targetFile.type === "image") {
+      const img = container.querySelector("img");
+      if (img && img.complete && img.naturalWidth > 0) {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+          blob = await new Promise((resolve) => {
+            canvas.toBlob(
+              resolve,
+              img.naturalWidth > 0 ? "image/jpeg" : "image/png",
+              0.92,
+            );
+          });
+        } catch (_) {}
+      }
+    }
+
+    // Fallback: fetch directo (usará cache del navegador si la imagen/video ya se cargó)
+    if (!blob) {
+      try {
+        const response = await fetch(targetFile.url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        blob = await response.blob();
+      } catch (err) {
+        this.showToast({
+          title: "Error",
+          message: "No se pudo obtener el archivo",
+          variant: "error",
+        });
+        return;
+      }
     }
 
     const ext = (targetFile.name || "").split(".").pop().toLowerCase();
@@ -2297,55 +2269,16 @@ class PCUMedia {
       avi: "video/x-msvideo",
       heic: "image/heic",
     };
-    const mimeType = mimeMap[ext] || "application/octet-stream";
+    const mimeType = mimeMap[ext] || blob.type || "application/octet-stream";
 
-    const restoreBtn = () => {
-      if (shareBtn) {
-        shareBtn.disabled = false;
-        shareBtn.style.opacity = "";
-        if (shareBtn._origHTML) shareBtn.innerHTML = shareBtn._origHTML;
-      }
-    };
+    const fileToShare = new File([blob], targetFile.name, {
+      type: mimeType,
+      lastModified: Date.now(),
+    });
 
     try {
-      // Intentar primero fetch directo (CORS) — más rápido
-      let arrayBuffer = null;
-      const abortCtrl = new AbortController();
-      this._shareAbortController = abortCtrl;
-
-      try {
-        const resp = await fetch(targetFile.url, {
-          signal: abortCtrl.signal,
-          mode: "cors",
-        });
-        if (resp.ok) arrayBuffer = await resp.arrayBuffer();
-      } catch (directErr) {
-        if (directErr.name === "AbortError") {
-          restoreBtn();
-          return;
-        }
-        // Fallar silenciosamente y usar proxy
-      }
-
-      // Fallback: proxy del servidor
-      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-        const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
-        const resp2 = await fetch(proxyUrl, { signal: abortCtrl.signal });
-        if (!resp2.ok) throw new Error(`Error HTTP ${resp2.status}`);
-        arrayBuffer = await resp2.arrayBuffer();
-      }
-
-      if (!arrayBuffer || arrayBuffer.byteLength === 0)
-        throw new Error("Archivo vacío");
-
-      const realFile = new File([arrayBuffer], targetFile.name, {
-        type: mimeType,
-        lastModified: Date.now(),
-      });
-
-      // Intentar compartir como archivo; fallback a URL
-      if (navigator.canShare && navigator.canShare({ files: [realFile] })) {
-        await navigator.share({ files: [realFile] });
+      if (navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
+        await navigator.share({ files: [fileToShare] });
       } else {
         await navigator.share({ title: targetFile.name, url: targetFile.url });
       }
@@ -2357,8 +2290,6 @@ class PCUMedia {
           variant: "error",
         });
       }
-    } finally {
-      restoreBtn();
     }
   }
 
@@ -2383,111 +2314,27 @@ class PCUMedia {
       return;
     }
 
-    // Feedback visual en el botón de descargar
-    const downloadBtn = document.getElementById("downloadBtn");
-    const origHTML = downloadBtn ? downloadBtn.innerHTML : null;
-    if (downloadBtn) {
-      downloadBtn.disabled = true;
-      downloadBtn.style.opacity = "0.7";
-      downloadBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 0.8s linear infinite;margin-right:6px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Descargando...`;
-    }
+    // Descarga directa usando la URL - instantáneo
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = targetFile.url;
+    a.download = targetFile.name;
+    a.setAttribute("target", "_blank");
+    document.body.appendChild(a);
+    a.click();
 
-    const restoreBtn = () => {
-      if (downloadBtn && origHTML !== null) {
-        downloadBtn.disabled = false;
-        downloadBtn.style.opacity = "";
-        downloadBtn.innerHTML = origHTML;
-      }
-    };
+    setTimeout(() => {
+      document.body.removeChild(a);
+    }, 100);
 
-    try {
-      // Obtener archivo sin delays
-      let arrayBuffer;
-      try {
-        const response = await fetch(targetFile.url, { mode: "cors" });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        arrayBuffer = await response.arrayBuffer();
-      } catch (fetchError) {
-        const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
-        arrayBuffer = await response.arrayBuffer();
-      }
-
-      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-        throw new Error("El archivo está vacío");
-      }
-
-      const ext = targetFile.name.split(".").pop().toLowerCase();
-      const mimeMap = {
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        png: "image/png",
-        gif: "image/gif",
-        webp: "image/webp",
-        bmp: "image/bmp",
-        mp4: "video/mp4",
-        webm: "video/webm",
-        mov: "video/quicktime",
-        avi: "video/x-msvideo",
-        heic: "image/heic",
-      };
-      const mimeType = mimeMap[ext] || "application/octet-stream";
-      const blob = new Blob([arrayBuffer], { type: mimeType });
-
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isAndroid = /Android/i.test(navigator.userAgent);
-
-      // Descarga directa SIN usar share API
-      if (isIOS) {
-        // iOS: crear link temporal para descarga
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.style.display = "none";
-        a.href = blobUrl;
-        a.download = targetFile.name;
-        a.setAttribute("target", "_blank");
-        document.body.appendChild(a);
-        a.click();
-
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(blobUrl);
-        }, 1000);
-      } else {
-        // Desktop/Android: descarga directa
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.style.display = "none";
-        a.href = blobUrl;
-        a.download = targetFile.name;
-        document.body.appendChild(a);
-        a.click();
-
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(blobUrl);
-        }, 1000);
-      }
-
-      // Toast de éxito
-      const locationMsg =
-        isIOS || isAndroid ? "galería" : "carpeta de descargas";
-      this.showToast({
-        title: "Descarga completada",
-        message: `Revise sus archivos en ${locationMsg}`,
-        variant: "success",
-      });
-      restoreBtn();
-    } catch (error) {
-      restoreBtn();
-      if (error.name === "AbortError") return;
-      this.showToast({
-        title: "Error al descargar",
-        message: error.message || "No se pudo descargar",
-        variant: "error",
-      });
-    }
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const locationMsg = isIOS || isAndroid ? "galería" : "carpeta de descargas";
+    this.showToast({
+      title: "Descarga iniciada",
+      message: `Revise sus archivos en ${locationMsg}`,
+      variant: "success",
+    });
   }
 
   openUploadModal() {
