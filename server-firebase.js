@@ -347,6 +347,32 @@ app.get("/api/folders", async (req, res) => {
   }
 });
 
+// Proxy para descargar archivos (evita problemas de CORS)
+app.get("/api/download-proxy", async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) {
+      return res.status(400).json({ error: "URL requerida" });
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const buffer = await response.arrayBuffer();
+    const contentType =
+      response.headers.get("content-type") || "application/octet-stream";
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", "attachment");
+    res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error("Error in download proxy:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Servir archivos estáticos
 app.use(express.static("."));
 
