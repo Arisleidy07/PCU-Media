@@ -2237,10 +2237,11 @@ class PCUMedia {
       }
     }
 
-    // Fallback: fetch directo (usará cache del navegador)
+    // Fallback: usar proxy del servidor (evita CORS)
     if (!blob) {
       try {
-        const response = await fetch(targetFile.url);
+        const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
+        const response = await fetch(proxyUrl);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         blob = await response.blob();
       } catch (err) {
@@ -2312,26 +2313,41 @@ class PCUMedia {
       return;
     }
 
-    const a = document.createElement("a");
-    a.style.display = "none";
-    a.href = targetFile.url;
-    a.download = targetFile.name;
-    a.setAttribute("target", "_blank");
-    document.body.appendChild(a);
-    a.click();
+    try {
+      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
 
-    setTimeout(() => {
-      document.body.removeChild(a);
-    }, 100);
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = blobUrl;
+      a.download = targetFile.name;
+      document.body.appendChild(a);
+      a.click();
 
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    const locationMsg = isIOS || isAndroid ? "galería" : "carpeta de descargas";
-    this.showToast({
-      title: "Descarga iniciada",
-      message: `Revise sus archivos en ${locationMsg}`,
-      variant: "success",
-    });
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
+
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      const locationMsg =
+        isIOS || isAndroid ? "galería" : "carpeta de descargas";
+      this.showToast({
+        title: "Descarga iniciada",
+        message: `Revise sus archivos en ${locationMsg}`,
+        variant: "success",
+      });
+    } catch (err) {
+      this.showToast({
+        title: "Error al descargar",
+        message: err.message || "No se pudo descargar",
+        variant: "error",
+      });
+    }
   }
 
   openUploadModal() {
