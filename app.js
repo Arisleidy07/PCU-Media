@@ -2215,33 +2215,66 @@ class PCUMedia {
       return;
     }
 
+    let blob = null;
+
+    // Para imágenes: usar canvas del DOM (instantáneo si ya está cargada)
+    if (targetFile.type === "image") {
+      const container = document.getElementById("previewContainer");
+      if (container) {
+        const img = container.querySelector("img");
+        if (img && img.complete && img.naturalWidth > 0) {
+          try {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            blob = await new Promise((resolve) => {
+              canvas.toBlob(resolve, "image/jpeg", 0.92);
+            });
+          } catch (_) {}
+        }
+      }
+    }
+
+    // Fallback: fetch directo (usará cache del navegador)
+    if (!blob) {
+      try {
+        const response = await fetch(targetFile.url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        blob = await response.blob();
+      } catch (err) {
+        this.showToast({
+          title: "Error",
+          message: "No se pudo obtener el archivo",
+          variant: "error",
+        });
+        return;
+      }
+    }
+
+    const ext = (targetFile.name || "").split(".").pop().toLowerCase();
+    const mimeMap = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      webp: "image/webp",
+      bmp: "image/bmp",
+      mp4: "video/mp4",
+      webm: "video/webm",
+      mov: "video/quicktime",
+      avi: "video/x-msvideo",
+      heic: "image/heic",
+    };
+    const mimeType = mimeMap[ext] || blob.type || "application/octet-stream";
+
+    const fileToShare = new File([blob], targetFile.name, {
+      type: mimeType,
+      lastModified: Date.now(),
+    });
+
     try {
-      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const blob = await response.blob();
-
-      const ext = (targetFile.name || "").split(".").pop().toLowerCase();
-      const mimeMap = {
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        png: "image/png",
-        gif: "image/gif",
-        webp: "image/webp",
-        bmp: "image/bmp",
-        mp4: "video/mp4",
-        webm: "video/webm",
-        mov: "video/quicktime",
-        avi: "video/x-msvideo",
-        heic: "image/heic",
-      };
-      const mimeType = mimeMap[ext] || blob.type || "application/octet-stream";
-
-      const fileToShare = new File([blob], targetFile.name, {
-        type: mimeType,
-        lastModified: Date.now(),
-      });
-
       if (navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
         await navigator.share({ files: [fileToShare] });
       } else {
@@ -2279,58 +2312,26 @@ class PCUMedia {
       return;
     }
 
-    try {
-      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const blob = await response.blob();
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = targetFile.url;
+    a.download = targetFile.name;
+    a.setAttribute("target", "_blank");
+    document.body.appendChild(a);
+    a.click();
 
-      const ext = (targetFile.name || "").split(".").pop().toLowerCase();
-      const mimeMap = {
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        png: "image/png",
-        gif: "image/gif",
-        webp: "image/webp",
-        bmp: "image/bmp",
-        mp4: "video/mp4",
-        webm: "video/webm",
-        mov: "video/quicktime",
-        avi: "video/x-msvideo",
-        heic: "image/heic",
-      };
-      const mimeType = mimeMap[ext] || blob.type || "application/octet-stream";
+    setTimeout(() => {
+      document.body.removeChild(a);
+    }, 100);
 
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = blobUrl;
-      a.download = targetFile.name;
-      a.setAttribute("target", "_blank");
-      document.body.appendChild(a);
-      a.click();
-
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      }, 100);
-
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isAndroid = /Android/i.test(navigator.userAgent);
-      const locationMsg =
-        isIOS || isAndroid ? "galería" : "carpeta de descargas";
-      this.showToast({
-        title: "Descarga iniciada",
-        message: `Revise sus archivos en ${locationMsg}`,
-        variant: "success",
-      });
-    } catch (err) {
-      this.showToast({
-        title: "Error al descargar",
-        message: err.message || "No se pudo descargar",
-        variant: "error",
-      });
-    }
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const locationMsg = isIOS || isAndroid ? "galería" : "carpeta de descargas";
+    this.showToast({
+      title: "Descarga iniciada",
+      message: `Revise sus archivos en ${locationMsg}`,
+      variant: "success",
+    });
   }
 
   openUploadModal() {
