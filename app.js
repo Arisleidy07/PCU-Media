@@ -2198,26 +2198,28 @@ class PCUMedia {
     }
 
     if (!navigator.share) {
-      try {
-        await navigator.clipboard.writeText(targetFile.url);
-        this.showToast({
-          title: "Enlace copiado",
-          message: "URL copiada al portapapeles",
-          variant: "success",
+      navigator.clipboard
+        .writeText(targetFile.url)
+        .then(() => {
+          this.showToast({
+            title: "Enlace copiado",
+            message: "URL copiada al portapapeles",
+            variant: "success",
+          });
+        })
+        .catch(() => {
+          this.showToast({
+            title: "Sin soporte",
+            message: "Compartir no disponible en este navegador",
+            variant: "error",
+          });
         });
-      } catch (_) {
-        this.showToast({
-          title: "Sin soporte",
-          message: "Compartir no disponible en este navegador",
-          variant: "error",
-        });
-      }
       return;
     }
 
     let blob = null;
 
-    // Para imágenes: usar canvas del DOM (instantáneo si ya está cargada)
+    // Para imágenes: canvas del DOM (más rápido si ya está cargada)
     if (targetFile.type === "image") {
       const container = document.getElementById("previewContainer");
       if (container) {
@@ -2230,20 +2232,22 @@ class PCUMedia {
             const ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0);
             blob = await new Promise((resolve) => {
-              canvas.toBlob(resolve, "image/jpeg", 0.92);
+              canvas.toBlob(resolve, "image/jpeg", 0.8);
             });
           } catch (_) {}
         }
       }
     }
 
-    // Fallback: usar proxy del servidor (evita CORS)
+    // Fallback: proxy del servidor
     if (!blob) {
       try {
-        const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        blob = await response.blob();
+        blob = await fetch(
+          `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`,
+        ).then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.blob();
+        });
       } catch (err) {
         this.showToast({
           title: "Error",
@@ -2314,10 +2318,12 @@ class PCUMedia {
     }
 
     try {
-      const proxyUrl = `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`;
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const blob = await response.blob();
+      const blob = await fetch(
+        `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`,
+      ).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+      });
 
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -2330,7 +2336,7 @@ class PCUMedia {
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(blobUrl);
-      }, 100);
+      }, 50);
 
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       const isAndroid = /Android/i.test(navigator.userAgent);
