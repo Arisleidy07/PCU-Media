@@ -2197,65 +2197,138 @@ class PCUMedia {
       return;
     }
 
-    if (!navigator.share) {
-      navigator.clipboard
-        .writeText(targetFile.url)
-        .then(() => {
-          this.showToast({
-            title: "Enlace copiado",
-            message: "URL copiada al portapapeles",
-            variant: "success",
-          });
-        })
-        .catch(() => {
-          this.showToast({
-            title: "Sin soporte",
-            message: "Compartir no disponible en este navegador",
-            variant: "error",
-          });
+    // Intento 1: Web Share API nativa con el ARCHIVO real (no URL)
+    if (navigator.share) {
+      try {
+        const ext = (targetFile.name || "").split(".").pop().toLowerCase();
+        const mimeMap = {
+          jpg: "image/jpeg",
+          jpeg: "image/jpeg",
+          png: "image/png",
+          gif: "image/gif",
+          webp: "image/webp",
+          bmp: "image/bmp",
+          mp4: "video/mp4",
+          webm: "video/webm",
+          mov: "video/quicktime",
+          avi: "video/x-msvideo",
+          heic: "image/heic",
+        };
+        const mimeType = mimeMap[ext] || "application/octet-stream";
+
+        const blob = await fetch(targetFile.url).then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.blob();
         });
-      return;
-    }
 
-    let blob = null;
+        const fileToShare = new File([blob], targetFile.name, {
+          type: mimeType,
+          lastModified: Date.now(),
+        });
 
-    // Para imágenes: canvas del DOM (más rápido si ya está cargada)
-    if (targetFile.type === "image") {
-      const container = document.getElementById("previewContainer");
-      if (container) {
-        const img = container.querySelector("img");
-        if (img && img.complete && img.naturalWidth > 0) {
-          try {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0);
-            blob = await new Promise((resolve) => {
-              canvas.toBlob(resolve, "image/jpeg", 0.8);
-            });
-          } catch (_) {}
+        if (
+          navigator.canShare &&
+          navigator.canShare({ files: [fileToShare] })
+        ) {
+          await navigator.share({ files: [fileToShare] });
+          return;
+        }
+
+        // Web Share API sin archivos (fallback dentro del intento 1)
+        await navigator.share({ title: targetFile.name, url: targetFile.url });
+        return;
+      } catch (err) {
+        if (err.name === "AbortError") return;
+        // Si falla el fetch directo, intentar vía proxy
+        try {
+          const ext = (targetFile.name || "").split(".").pop().toLowerCase();
+          const mimeMap = {
+            jpg: "image/jpeg",
+            jpeg: "image/jpeg",
+            png: "image/png",
+            gif: "image/gif",
+            webp: "image/webp",
+            bmp: "image/bmp",
+            mp4: "video/mp4",
+            webm: "video/webm",
+            mov: "video/quicktime",
+            avi: "video/x-msvideo",
+            heic: "image/heic",
+          };
+          const mimeType = mimeMap[ext] || "application/octet-stream";
+          const blob = await fetch(
+            `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`,
+          ).then((r) => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.blob();
+          });
+          const fileToShare = new File([blob], targetFile.name, {
+            type: mimeType,
+            lastModified: Date.now(),
+          });
+          if (
+            navigator.canShare &&
+            navigator.canShare({ files: [fileToShare] })
+          ) {
+            await navigator.share({ files: [fileToShare] });
+            return;
+          }
+          await navigator.share({
+            title: targetFile.name,
+            url: targetFile.url,
+          });
+          return;
+        } catch (proxyErr) {
+          if (proxyErr.name === "AbortError") return;
         }
       }
     }
 
-    // Fallback: proxy del servidor
-    if (!blob) {
+    // Intento 2: Clipboard API
+    if (navigator.clipboard) {
       try {
-        blob = await fetch(
-          `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`,
-        ).then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.blob();
-        });
-      } catch (err) {
+        await navigator.clipboard.writeText(targetFile.url);
         this.showToast({
-          title: "Error",
-          message: "No se pudo obtener el archivo",
-          variant: "error",
+          title: "Enlace copiado",
+          message: "URL copiada al portapapeles",
+          variant: "success",
         });
         return;
-      }
+      } catch (_) {}
+    }
+
+    // Intento 3: execCommand fallback para navegadores antiguos
+    try {
+      const input = document.createElement("input");
+      input.value = targetFile.url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      this.showToast({
+        title: "Enlace copiado",
+        message: "URL copiada al portapapeles",
+        variant: "success",
+      });
+    } catch (_) {
+      this.showToast({
+        title: "Sin soporte",
+        message: "Compartir no disponible en este navegador",
+        variant: "error",
+      });
+    }
+  }
+
+  async downloadFile(file = null) {
+    const targetFile = file || this.currentPreviewFile;
+
+    if (!targetFile || !targetFile.url) {
+      this.showToast({
+        title: "Error",
+        message: "No hay archivo para descargar",
+        variant: "error",
+      });
+      return;
     }
 
     const ext = (targetFile.name || "").split(".").pop().toLowerCase();
@@ -2272,88 +2345,70 @@ class PCUMedia {
       avi: "video/x-msvideo",
       heic: "image/heic",
     };
-    const mimeType = mimeMap[ext] || blob.type || "application/octet-stream";
+    const mimeType = mimeMap[ext] || "application/octet-stream";
 
-    const fileToShare = new File([blob], targetFile.name, {
+    // Obtener el archivo real como blob
+    let blob = null;
+    try {
+      blob = await fetch(targetFile.url).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+      });
+    } catch (_) {
+      try {
+        blob = await fetch(
+          `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`,
+        ).then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.blob();
+        });
+      } catch (err) {
+        this.showToast({
+          title: "Error al descargar",
+          message: err.message || "No se pudo descargar",
+          variant: "error",
+        });
+        return;
+      }
+    }
+
+    const fileObj = new File([blob], targetFile.name, {
       type: mimeType,
       lastModified: Date.now(),
     });
 
-    try {
-      if (navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
-        await navigator.share({ files: [fileToShare] });
-      } else {
-        await navigator.share({ title: targetFile.name, url: targetFile.url });
+    // Móvil (iOS + Android): menú nativo con el archivo real
+    // El usuario elige: "Guardar imagen", "Guardar en Archivos", WhatsApp, etc.
+    if (
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({ files: [fileObj] })
+    ) {
+      try {
+        await navigator.share({ files: [fileObj] });
+        return;
+      } catch (err) {
+        if (err.name === "AbortError") return;
       }
-    } catch (err) {
-      if (err.name !== "AbortError") {
-        this.showToast({
-          title: "Error al compartir",
-          message: err.message || "No se pudo compartir",
-          variant: "error",
-        });
-      }
-    }
-  }
-
-  async downloadFile(file = null) {
-    const targetFile = file || this.currentPreviewFile;
-
-    if (!targetFile) {
-      this.showToast({
-        title: "Error",
-        message: "No hay archivo para descargar",
-        variant: "error",
-      });
-      return;
     }
 
-    if (!targetFile.url) {
-      this.showToast({
-        title: "Error",
-        message: "El archivo no tiene URL válida",
-        variant: "error",
-      });
-      return;
-    }
-
-    try {
-      const blob = await fetch(
-        `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}`,
-      ).then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.blob();
-      });
-
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = blobUrl;
-      a.download = targetFile.name;
-      document.body.appendChild(a);
-      a.click();
-
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      }, 50);
-
-      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isAndroid = /Android/i.test(navigator.userAgent);
-      const locationMsg =
-        isIOS || isAndroid ? "galería" : "carpeta de descargas";
-      this.showToast({
-        title: "Descarga iniciada",
-        message: `Revise sus archivos en ${locationMsg}`,
-        variant: "success",
-      });
-    } catch (err) {
-      this.showToast({
-        title: "Error al descargar",
-        message: err.message || "No se pudo descargar",
-        variant: "error",
-      });
-    }
+    // Desktop: descarga directa con blobUrl (no abre página externa)
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = blobUrl;
+    a.download = targetFile.name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    }, 100);
+    this.showToast({
+      title: "Descarga iniciada",
+      message: "Guardando en carpeta de descargas",
+      variant: "success",
+    });
   }
 
   openUploadModal() {

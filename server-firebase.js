@@ -350,7 +350,7 @@ app.get("/api/folders", async (req, res) => {
 // Proxy para descargar archivos (evita problemas de CORS)
 app.get("/api/download-proxy", async (req, res) => {
   try {
-    const { url } = req.query;
+    const { url, filename } = req.query;
     if (!url) {
       return res.status(400).json({ error: "URL requerida" });
     }
@@ -364,8 +364,11 @@ app.get("/api/download-proxy", async (req, res) => {
     const contentType =
       response.headers.get("content-type") || "application/octet-stream";
 
+    const safeName = filename
+      ? filename.replace(/[^a-zA-Z0-9._\-\u00C0-\u024F]/g, "_")
+      : "archivo";
     res.setHeader("Content-Type", contentType);
-    res.setHeader("Content-Disposition", "attachment");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
     res.send(Buffer.from(buffer));
   } catch (error) {
     console.error("Error in download proxy:", error);
