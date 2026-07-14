@@ -2197,125 +2197,57 @@ class PCUMedia {
       return;
     }
 
-    // Intento 1: Web Share API nativa con el ARCHIVO real (no URL)
-    if (navigator.share) {
-      try {
-        const ext = (targetFile.name || "").split(".").pop().toLowerCase();
-        const mimeMap = {
-          jpg: "image/jpeg",
-          jpeg: "image/jpeg",
-          png: "image/png",
-          gif: "image/gif",
-          webp: "image/webp",
-          bmp: "image/bmp",
-          mp4: "video/mp4",
-          webm: "video/webm",
-          mov: "video/quicktime",
-          avi: "video/x-msvideo",
-          heic: "image/heic",
-        };
-        const mimeType = mimeMap[ext] || "application/octet-stream";
-
-        const blob = await fetch(targetFile.url).then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.blob();
-        });
-
-        const fileToShare = new File([blob], targetFile.name, {
-          type: mimeType,
-          lastModified: Date.now(),
-        });
-
-        if (
-          navigator.canShare &&
-          navigator.canShare({ files: [fileToShare] })
-        ) {
-          await navigator.share({ files: [fileToShare] });
-          return;
-        }
-
-        // Web Share API sin archivos (fallback dentro del intento 1)
-        await navigator.share({ title: targetFile.name, url: targetFile.url });
-        return;
-      } catch (err) {
-        if (err.name === "AbortError") return;
-        // Si falla el fetch directo, intentar vía proxy
-        try {
-          const ext = (targetFile.name || "").split(".").pop().toLowerCase();
-          const mimeMap = {
-            jpg: "image/jpeg",
-            jpeg: "image/jpeg",
-            png: "image/png",
-            gif: "image/gif",
-            webp: "image/webp",
-            bmp: "image/bmp",
-            mp4: "video/mp4",
-            webm: "video/webm",
-            mov: "video/quicktime",
-            avi: "video/x-msvideo",
-            heic: "image/heic",
-          };
-          const mimeType = mimeMap[ext] || "application/octet-stream";
-          const blob = await fetch(
-            `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`,
-          ).then((r) => {
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            return r.blob();
-          });
-          const fileToShare = new File([blob], targetFile.name, {
-            type: mimeType,
-            lastModified: Date.now(),
-          });
-          if (
-            navigator.canShare &&
-            navigator.canShare({ files: [fileToShare] })
-          ) {
-            await navigator.share({ files: [fileToShare] });
-            return;
-          }
-          await navigator.share({
-            title: targetFile.name,
-            url: targetFile.url,
-          });
-          return;
-        } catch (proxyErr) {
-          if (proxyErr.name === "AbortError") return;
-        }
-      }
-    }
-
-    // Intento 2: Clipboard API
-    if (navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(targetFile.url);
-        this.showToast({
-          title: "Enlace copiado",
-          message: "URL copiada al portapapeles",
-          variant: "success",
-        });
-        return;
-      } catch (_) {}
-    }
-
-    // Intento 3: execCommand fallback para navegadores antiguos
-    try {
-      const input = document.createElement("input");
-      input.value = targetFile.url;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand("copy");
-      document.body.removeChild(input);
-      this.showToast({
-        title: "Enlace copiado",
-        message: "URL copiada al portapapeles",
-        variant: "success",
-      });
-    } catch (_) {
+    if (!navigator.share) {
       this.showToast({
         title: "Sin soporte",
         message: "Compartir no disponible en este navegador",
         variant: "error",
       });
+      return;
+    }
+
+    try {
+      const ext = (targetFile.name || "").split(".").pop().toLowerCase();
+      const mimeMap = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+        bmp: "image/bmp",
+        mp4: "video/mp4",
+        webm: "video/webm",
+        mov: "video/quicktime",
+        avi: "video/x-msvideo",
+        heic: "image/heic",
+      };
+      const mimeType = mimeMap[ext] || "application/octet-stream";
+
+      const blob = await fetch(
+        `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`,
+      ).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.blob();
+      });
+
+      const fileToShare = new File([blob], targetFile.name, {
+        type: mimeType,
+        lastModified: Date.now(),
+      });
+
+      if (navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
+        await navigator.share({ files: [fileToShare] });
+      } else {
+        await navigator.share({ title: targetFile.name, url: targetFile.url });
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        this.showToast({
+          title: "Error al compartir",
+          message: err.message || "No se pudo compartir",
+          variant: "error",
+        });
+      }
     }
   }
 
