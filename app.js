@@ -2320,6 +2320,29 @@ class PCUMedia {
 
     try {
       const originalFile = await this.fetchOriginalFile(targetFile);
+
+      // En móvil/tablet usar el share sheet nativo para guardar en Fotos/Galería.
+      // Esto imita el comportamiento de Pinterest/Instagram/Facebook.
+      const canShareFiles =
+        this.isTouchDevice() &&
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({ files: [originalFile] });
+
+      if (canShareFiles) {
+        await navigator.share({
+          files: [originalFile],
+          title: originalFile.name,
+        });
+        this.showToast({
+          title: "Listo",
+          message: "Selecciona 'Guardar en Fotos' para dejarlo en la galería",
+          variant: "success",
+        });
+        return;
+      }
+
+      // Escritorio o navegadores sin Web Share: descarga tradicional a Downloads
       const objectUrl = URL.createObjectURL(originalFile);
       const link = document.createElement("a");
       link.href = objectUrl;
@@ -2337,11 +2360,13 @@ class PCUMedia {
         variant: "success",
       });
     } catch (err) {
-      this.showToast({
-        title: "Error al descargar",
-        message: err.message || "No se pudo descargar el archivo",
-        variant: "error",
-      });
+      if (err.name !== "AbortError") {
+        this.showToast({
+          title: "Error al descargar",
+          message: err.message || "No se pudo descargar el archivo",
+          variant: "error",
+        });
+      }
     } finally {
       this.isDownloading = false;
     }
@@ -3108,6 +3133,19 @@ class PCUMedia {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  }
+
+  isTouchDevice() {
+    const hasTouch =
+      ("maxTouchPoints" in navigator && navigator.maxTouchPoints > 0) ||
+      "ontouchstart" in window;
+    const coarsePointer =
+      window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    const mobileUA =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(
+        navigator.userAgent,
+      );
+    return hasTouch || coarsePointer || mobileUA;
   }
 
   escapeHtml(str) {
