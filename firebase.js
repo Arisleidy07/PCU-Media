@@ -12,7 +12,6 @@ import {
   deleteObject,
   listAll,
   getMetadata,
-  getBlob,
 } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-storage.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore.js";
 
@@ -36,7 +35,6 @@ try {
   window.fbRef = ref;
   window.fbUploadBytes = uploadBytes;
   window.fbGetDownloadURL = getDownloadURL;
-  window.fbGetBlob = getBlob;
   window.fbReady = true;
 
   // Notificar a app.js que Firebase está listo

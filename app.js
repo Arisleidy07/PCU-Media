@@ -2205,34 +2205,40 @@ class PCUMedia {
   }
 
   async fetchOriginalFile(targetFile) {
-    let blob;
     let responseType = "";
+    const url = targetFile.url || "";
+    const isExternal =
+      /^https?:\/\//i.test(url) && !url.startsWith(window.location.origin);
 
-    if (
-      window.fbStorage &&
-      window.fbRef &&
-      window.fbGetBlob &&
-      targetFile.path
-    ) {
-      const storageRef = window.fbRef(window.fbStorage, targetFile.path);
-      blob = await window.fbGetBlob(storageRef);
+    let response;
+    if (isExternal) {
+      const proxyUrl =
+        "/api/download-proxy?url=" +
+        encodeURIComponent(url) +
+        "&filename=" +
+        encodeURIComponent(targetFile.name || "archivo");
+      response = await fetch(proxyUrl, {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
     } else {
-      const response = await fetch(targetFile.url, {
+      response = await fetch(url, {
         cache: "no-store",
         credentials: "omit",
         mode: "cors",
       });
-      if (!response.ok) {
-        throw new Error(
-          `No se pudo obtener el archivo (HTTP ${response.status})`,
-        );
-      }
-      responseType = response.headers.get("content-type") || "";
-      blob = await response.blob();
     }
 
+    if (!response.ok) {
+      throw new Error(
+        `No se pudo obtener el archivo (HTTP ${response.status})`,
+      );
+    }
+    responseType = response.headers.get("content-type") || "";
+    const blob = await response.blob();
+
     if (!blob || (!blob.size && Number(targetFile.size) > 0)) {
-      throw new Error("Firebase Storage devolvió un archivo vacío");
+      throw new Error("El archivo descargado está vacío");
     }
 
     const mimeType =
