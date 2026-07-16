@@ -518,12 +518,16 @@ class PCUMedia {
   async init() {
     this.setupEventListeners();
 
-    this.checkEnvironment();
-
-    await this.refreshFolders();
-    await this.loadFiles();
-    // Establecer vista inicial y ocultar sidebar en Inicio
+    // Mostrar la UI inmediatamente sin esperar al servidor
     this.setActiveTab("home");
+
+    // Health check en paralelo, sin bloquear la app si falla
+    this.checkEnvironment().catch(() => {});
+
+    // Cargar carpetas y archivos en segundo plano
+    await this.refreshFolders();
+    this.homeFolderFiles.clear();
+    await this.loadFiles();
   }
 
   showToast({ title, message, variant }) {
@@ -638,6 +642,8 @@ class PCUMedia {
     const uploadConfirmBtn = document.getElementById("uploadConfirmBtn");
     const previewEditBtn = document.getElementById("previewEditBtn");
     const previewSaveBtn = document.getElementById("previewSaveBtn");
+    const shareBtn = document.getElementById("shareBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
 
     if (uploadBtn)
       uploadBtn.addEventListener("click", () => {
@@ -748,17 +754,35 @@ class PCUMedia {
       });
     }
 
-    // share/download listeners son gestionados dentro de openPreview() para evitar duplicados
+    if (shareBtn) {
+      shareBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void this.shareFile();
+      });
+    }
 
-    uploadPreviewArea.addEventListener("click", () => uploadFileInput.click());
-    uploadFileInput.addEventListener("change", (e) => {
-      const append =
-        this.pendingUploadFiles && this.pendingUploadFiles.length > 0;
-      this.setPendingUploadFiles(e.target.files, append);
-      try {
-        e.target.value = "";
-      } catch {}
-    });
+    if (downloadBtn) {
+      downloadBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        void this.downloadFile();
+      });
+    }
+
+    if (uploadPreviewArea && uploadFileInput) {
+      uploadPreviewArea.addEventListener("click", () =>
+        uploadFileInput.click(),
+      );
+      uploadFileInput.addEventListener("change", (e) => {
+        const append =
+          this.pendingUploadFiles && this.pendingUploadFiles.length > 0;
+        this.setPendingUploadFiles(e.target.files, append);
+        try {
+          e.target.value = "";
+        } catch {}
+      });
+    }
     if (uploadCameraInput) {
       uploadCameraInput.addEventListener("change", (e) => {
         this.setPendingUploadFiles(e.target.files, true);
@@ -775,7 +799,7 @@ class PCUMedia {
         } catch {}
       });
     }
-    if (addMoreBtn)
+    if (addMoreBtn && uploadFileInput)
       addMoreBtn.addEventListener("click", () => uploadFileInput.click());
     if (takePhotoBtn)
       takePhotoBtn.addEventListener(
@@ -835,10 +859,12 @@ class PCUMedia {
       });
     }
 
-    uploadConfirmBtn.addEventListener("click", async () => {
-      if (!uploadModal.classList.contains("active")) return;
-      await this.confirmUpload();
-    });
+    if (uploadConfirmBtn && uploadModal) {
+      uploadConfirmBtn.addEventListener("click", async () => {
+        if (!uploadModal.classList.contains("active")) return;
+        await this.confirmUpload();
+      });
+    }
 
     if (previewEditBtn) {
       previewEditBtn.addEventListener("click", () => {
@@ -1300,6 +1326,7 @@ class PCUMedia {
     const galleryGrid = document.getElementById("galleryGrid");
     const emptyState = document.getElementById("emptyState");
     const homeAccordion = document.getElementById("homeAccordion");
+    if (!galleryGrid || !emptyState) return;
     this.updateFolderToolbar();
 
     if (homeAccordion) {
@@ -1410,9 +1437,9 @@ class PCUMedia {
 
     const mediaElement =
       file.type === "video"
-        ? `<video src="${file.url}" autoplay muted loop playsinline preload="metadata"></video>`
+        ? `<video src="${file.url}" muted playsinline preload="metadata" poster=""></video>`
         : file.type === "image"
-          ? `<img src="${file.url}" alt="${this.escapeHtml(file.name)}">`
+          ? `<img src="${file.url}" alt="${this.escapeHtml(file.name)}" loading="lazy">`
           : `<div class="doc-preview">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -1574,7 +1601,7 @@ class PCUMedia {
     let lpTimer = null;
     const startLP = (e) => {
       lpTimer = window.setTimeout(() => {
-        const anchor = div.querySelector(".item-actions__btn") || div;
+        const anchor = div.querySelector(".menu-btn") || div;
         this.openItemMenu(file, anchor);
       }, 500);
     };
@@ -1958,6 +1985,8 @@ class PCUMedia {
     const fileDate = document.getElementById("previewFileDate");
     const fileSize = document.getElementById("previewFileSize");
 
+    if (!modal || !container || !fileName) return;
+
     // Set file info
     fileName.textContent = file.name;
 
@@ -2013,39 +2042,6 @@ class PCUMedia {
 
     // Ensure edit UI starts hidden pero mostrar siempre el bloque de info
     this.setPreviewEditMode(false);
-
-    // Re-attach share and download event listeners (clonar para eliminar listeners viejos)
-    const shareBtn = document.getElementById("shareBtn");
-    const downloadBtn = document.getElementById("downloadBtn");
-
-    if (shareBtn) {
-      const newShareBtn = shareBtn.cloneNode(true);
-      newShareBtn._origHTML = newShareBtn.innerHTML;
-      shareBtn.parentNode.replaceChild(newShareBtn, shareBtn);
-      newShareBtn.addEventListener(
-        "click",
-        (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.shareFile();
-        },
-        { once: false },
-      );
-    }
-
-    if (downloadBtn) {
-      const newDownloadBtn = downloadBtn.cloneNode(true);
-      downloadBtn.parentNode.replaceChild(newDownloadBtn, downloadBtn);
-      newDownloadBtn.addEventListener(
-        "click",
-        (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.downloadFile();
-        },
-        { once: false },
-      );
-    }
 
     // Click handler en el área de media — solo para imágenes
     // Los videos tienen sus propios controles nativos; no interceptar sus clics
@@ -2109,10 +2105,12 @@ class PCUMedia {
       mediaEl.style.cssText =
         "max-width:100%; max-height:100%; object-fit:contain; display: block;";
     } else {
-      // For documents, show message instead of opening
-      alert(
-        "No se puede compartir documentos directamente. Por favor, descarga el archivo y compártelo manualmente.",
-      );
+      // For documents, show toast instead of opening
+      this.showToast({
+        title: "Documento",
+        message: "Descarga el archivo y compártelo manualmente.",
+        variant: "error",
+      });
       return;
     }
 
@@ -2173,7 +2171,7 @@ class PCUMedia {
 
   closePreview() {
     const modal = document.getElementById("previewModal");
-    modal.classList.remove("active");
+    if (modal) modal.classList.remove("active");
     document.body.style.overflow = "";
     // Reset edit mode when closing
     this.setPreviewEditMode(false);
@@ -2182,6 +2180,54 @@ class PCUMedia {
     const video = document.querySelector("#previewContainer video");
     if (video) {
       video.pause();
+    }
+  }
+
+  getMimeType(name) {
+    const ext = String(name || "")
+      .split(".")
+      .pop()
+      .toLowerCase();
+    const mimeMap = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      webp: "image/webp",
+      bmp: "image/bmp",
+      mp4: "video/mp4",
+      webm: "video/webm",
+      mov: "video/quicktime",
+      avi: "video/x-msvideo",
+      heic: "image/heic",
+    };
+    return mimeMap[ext] || "application/octet-stream";
+  }
+
+  async fetchFileBlob(targetFile) {
+    try {
+      const r = await fetch(targetFile.url);
+      if (r.ok) return r.blob();
+    } catch (_) {}
+    const r = await fetch(
+      `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`,
+    );
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.blob();
+  }
+
+  openDirectDownload(url) {
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => document.body.removeChild(a), 100);
+    } catch (err) {
+      window.open(url, "_blank");
     }
   }
 
@@ -2206,40 +2252,11 @@ class PCUMedia {
       return;
     }
 
+    if (this.isSharing) return;
+    this.isSharing = true;
+
     try {
-      const ext = (targetFile.name || "").split(".").pop().toLowerCase();
-      const mimeMap = {
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        png: "image/png",
-        gif: "image/gif",
-        webp: "image/webp",
-        bmp: "image/bmp",
-        mp4: "video/mp4",
-        webm: "video/webm",
-        mov: "video/quicktime",
-        avi: "video/x-msvideo",
-        heic: "image/heic",
-      };
-      const mimeType = mimeMap[ext] || "application/octet-stream";
-
-      const blob = await fetch(
-        `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`,
-      ).then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.blob();
-      });
-
-      const fileToShare = new File([blob], targetFile.name, {
-        type: mimeType,
-        lastModified: Date.now(),
-      });
-
-      if (navigator.canShare && navigator.canShare({ files: [fileToShare] })) {
-        await navigator.share({ files: [fileToShare] });
-      } else {
-        await navigator.share({ title: targetFile.name, url: targetFile.url });
-      }
+      await navigator.share({ title: targetFile.name, url: targetFile.url });
     } catch (err) {
       if (err.name !== "AbortError") {
         this.showToast({
@@ -2248,6 +2265,8 @@ class PCUMedia {
           variant: "error",
         });
       }
+    } finally {
+      this.isSharing = false;
     }
   }
 
@@ -2263,88 +2282,73 @@ class PCUMedia {
       return;
     }
 
-    const ext = (targetFile.name || "").split(".").pop().toLowerCase();
-    const mimeMap = {
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      png: "image/png",
-      gif: "image/gif",
-      webp: "image/webp",
-      bmp: "image/bmp",
-      mp4: "video/mp4",
-      webm: "video/webm",
-      mov: "video/quicktime",
-      avi: "video/x-msvideo",
-      heic: "image/heic",
-    };
-    const mimeType = mimeMap[ext] || "application/octet-stream";
+    const size = Number(targetFile.size) || 0;
+    // Límite seguro para evitar HTTP 500 en Vercel serverless
+    const MAX_BLOB_DOWNLOAD = 4 * 1024 * 1024;
 
-    // Obtener el archivo real como blob
-    let blob = null;
-    try {
-      blob = await fetch(targetFile.url).then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.blob();
+    if (size > MAX_BLOB_DOWNLOAD) {
+      this.openDirectDownload(targetFile.url);
+      this.showToast({
+        title: "Descarga iniciada",
+        message: "Abriendo archivo directamente",
+        variant: "success",
       });
-    } catch (_) {
-      try {
-        blob = await fetch(
-          `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`,
-        ).then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.blob();
-        });
-      } catch (err) {
-        this.showToast({
-          title: "Error al descargar",
-          message: err.message || "No se pudo descargar",
-          variant: "error",
-        });
-        return;
-      }
+      return;
     }
 
-    const fileObj = new File([blob], targetFile.name, {
-      type: mimeType,
-      lastModified: Date.now(),
-    });
+    try {
+      const blob = await this.fetchFileBlob(targetFile);
+      const mimeType = this.getMimeType(targetFile.name);
+      const fileObj = new File([blob], targetFile.name, {
+        type: mimeType,
+        lastModified: Date.now(),
+      });
 
-    // Móvil (iOS + Android): menú nativo con el archivo real
-    // El usuario elige: "Guardar imagen", "Guardar en Archivos", WhatsApp, etc.
-    if (
-      navigator.share &&
-      navigator.canShare &&
-      navigator.canShare({ files: [fileObj] })
-    ) {
-      try {
-        await navigator.share({ files: [fileObj] });
-        return;
-      } catch (err) {
-        if (err.name === "AbortError") return;
+      // Móvil (iOS + Android): menú nativo con el archivo real
+      if (
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({ files: [fileObj] })
+      ) {
+        try {
+          await navigator.share({ files: [fileObj] });
+          return;
+        } catch (err) {
+          if (err.name === "AbortError") return;
+        }
       }
-    }
 
-    // Desktop: descarga directa con blobUrl (no abre página externa)
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.style.display = "none";
-    a.href = blobUrl;
-    a.download = targetFile.name;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    }, 100);
-    this.showToast({
-      title: "Descarga iniciada",
-      message: "Guardando en carpeta de descargas",
-      variant: "success",
-    });
+      // Desktop: descarga directa con blobUrl
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = blobUrl;
+      a.download = targetFile.name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
+      this.showToast({
+        title: "Descarga iniciada",
+        message: "Guardando en carpeta de descargas",
+        variant: "success",
+      });
+    } catch (err) {
+      this.showToast({
+        title: "Error al descargar",
+        message: err.message || "No se pudo descargar",
+        variant: "error",
+      });
+      // Fallback: abrir URL directa de Firebase
+      this.openDirectDownload(targetFile.url);
+    }
   }
 
   openUploadModal() {
     const modal = document.getElementById("uploadModal");
+    if (!modal) return;
     modal.classList.add("active");
     document.body.style.overflow = "hidden";
 
@@ -2353,13 +2357,13 @@ class PCUMedia {
 
     const uploadFolderSelect = document.getElementById("uploadFolderSelect");
     const initialDest = this.currentPath || "";
-    if (initialDest) {
+    if (initialDest && uploadFolderSelect) {
       uploadFolderSelect.value = initialDest;
     } // else keep placeholder selected
     const folderSelectTileLabel = document.getElementById(
       "folderSelectTileLabel",
     );
-    if (folderSelectTileLabel)
+    if (folderSelectTileLabel && uploadFolderSelect)
       folderSelectTileLabel.textContent = uploadFolderSelect.value
         ? `/${uploadFolderSelect.value}`
         : "Selecciona carpeta";
@@ -2373,12 +2377,12 @@ class PCUMedia {
 
   closeUploadModal() {
     const modal = document.getElementById("uploadModal");
-    modal.classList.remove("active");
+    if (modal) modal.classList.remove("active");
     document.body.style.overflow = "";
     this.setPendingUploadFiles([]);
 
     const uploadFileInput = document.getElementById("uploadFileInput");
-    uploadFileInput.value = "";
+    if (uploadFileInput) uploadFileInput.value = "";
     const uploadCameraInput = document.getElementById("uploadCameraInput");
     if (uploadCameraInput) uploadCameraInput.value = "";
     const uploadImageInput = document.getElementById("uploadImageInput");
@@ -2596,6 +2600,10 @@ class PCUMedia {
 
     const nodes = [];
     const children = (this.folderTree && this.folderTree.children) || [];
+    if (!this.homeAccordionInitialized) {
+      for (const node of children) this.homeCollapsed.add(node.path);
+      this.homeAccordionInitialized = true;
+    }
     nodes.push(...children);
     const emptyState = document.getElementById("emptyState");
     if (emptyState) emptyState.style.display = "none";
@@ -2672,8 +2680,11 @@ class PCUMedia {
     row.addEventListener("touchend", cancelLP, { passive: true });
     row.addEventListener("touchmove", cancelLP, { passive: true });
 
-    // Siempre cargar metadatos (conteos) y contenido, aunque el cuerpo esté oculto si está colapsado
-    this.renderHomeFolderBody(node, filesEl, childrenEl, meta, depth);
+    // Solo cargar contenido si la carpeta está expandida; así se reduce drásticamente
+    // la carga inicial en la vista Inicio.
+    if (!isCollapsed) {
+      this.renderHomeFolderBody(node, filesEl, childrenEl, meta, depth);
+    }
 
     return wrap;
   }
@@ -2899,7 +2910,7 @@ class PCUMedia {
       const isImg = (f.type || "").startsWith("image/");
       const mediaHtml = isImg
         ? `<img class="selected-file-thumb" src="${url}" alt="${this.escapeHtml(parts.base)}" style="width:100%;height:100%;object-fit:contain;object-position:center" />`
-        : `<video class="selected-file-thumb" src="${url}" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
+        : `<video class="selected-file-thumb" src="${url}" muted playsinline style="width:100%;height:100%;object-fit:contain;object-position:center"></video>`;
       const titleVal = this.escapeHtml(
         this.pendingUploadNames[i] || parts.base,
       );
@@ -3180,13 +3191,14 @@ class PCUMedia {
 
 // Global function for closing preview
 function closePreview() {
-  window.pcuMedia.closePreview();
+  if (window.pcuMedia) window.pcuMedia.closePreview();
 }
 
 // Global functions for fullscreen image modal
 function openFullscreenImage(imageSrc) {
   const modal = document.getElementById("fullscreenImageModal");
   const image = document.getElementById("fullscreenImage");
+  if (!modal || !image) return;
   image.src = imageSrc;
   modal.classList.add("active");
   document.body.style.overflow = "hidden";
@@ -3194,7 +3206,7 @@ function openFullscreenImage(imageSrc) {
 
 function closeFullscreenImage() {
   const modal = document.getElementById("fullscreenImageModal");
-  modal.classList.remove("active");
+  if (modal) modal.classList.remove("active");
   document.body.style.overflow = "";
 }
 

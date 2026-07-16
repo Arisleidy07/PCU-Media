@@ -666,8 +666,9 @@ app.get("/folders", async (req, res) => {
   }
 });
 
-// Manejo de errores
-// Proxy para forzar descarga directa de archivos de Firebase Storage
+// Proxy para forzar descarga directa de archivos de Firebase Storage.
+// NOTA: Vercel serverless limita el tamaño de respuesta (~4.5 MB en Hobby),
+// por lo que el frontend ya evita este proxy para archivos grandes.
 app.get("/download-proxy", async (req, res) => {
   try {
     const { url, filename } = req.query;
@@ -688,21 +689,25 @@ app.get("/download-proxy", async (req, res) => {
     const contentType =
       response.headers.get("content-type") || "application/octet-stream";
 
+    // Sanitizar nombre de archivo para evitar caracteres problemáticos
+    const safeName = filename
+      ? String(filename).replace(/[^a-zA-Z0-9._\-\u00C0-\u024F]/g, "_")
+      : "download";
+
     // Configurar headers para forzar descarga
     res.setHeader("Content-Type", contentType);
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${filename || "download"}"`,
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
     res.setHeader("Cache-Control", "no-cache");
 
-    // Stream del archivo al cliente
-    response.body.pipe(res);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    res.send(buffer);
   } catch (error) {
     console.error("Error en download-proxy:", error);
-    res
-      .status(500)
-      .json({ error: error.message || "Error descargando archivo" });
+    if (!res.headersSent) {
+      res
+        .status(500)
+        .json({ error: error.message || "Error descargando archivo" });
+    }
   }
 });
 
