@@ -271,6 +271,7 @@ app.get("/files", async (req, res) => {
         path: data.path,
         url: data.url,
         size: data.size,
+        mimetype: data.mimetype || "application/octet-stream",
         modified: modified,
         type: data.type,
       });

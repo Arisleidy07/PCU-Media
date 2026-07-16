@@ -220,6 +220,7 @@ app.get("/api/files", async (req, res) => {
         path: data.path,
         url: data.url,
         size: data.size,
+        mimetype: data.mimetype || "application/octet-stream",
         modified: data.uploadDate,
         type: data.type,
       });

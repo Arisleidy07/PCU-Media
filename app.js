@@ -2204,31 +2204,47 @@ class PCUMedia {
     return mimeMap[ext] || "application/octet-stream";
   }
 
-  async fetchFileBlob(targetFile) {
-    try {
-      const r = await fetch(targetFile.url);
-      if (r.ok) return r.blob();
-    } catch (_) {}
-    const r = await fetch(
-      `/api/download-proxy?url=${encodeURIComponent(targetFile.url)}&filename=${encodeURIComponent(targetFile.name)}`,
-    );
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.blob();
-  }
+  async fetchOriginalFile(targetFile) {
+    let blob;
+    let responseType = "";
 
-  openDirectDownload(url) {
-    try {
-      const a = document.createElement("a");
-      a.href = url;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => document.body.removeChild(a), 100);
-    } catch (err) {
-      window.open(url, "_blank");
+    if (
+      window.fbStorage &&
+      window.fbRef &&
+      window.fbGetBlob &&
+      targetFile.path
+    ) {
+      const storageRef = window.fbRef(window.fbStorage, targetFile.path);
+      blob = await window.fbGetBlob(storageRef);
+    } else {
+      const response = await fetch(targetFile.url, {
+        cache: "no-store",
+        credentials: "omit",
+        mode: "cors",
+      });
+      if (!response.ok) {
+        throw new Error(
+          `No se pudo obtener el archivo (HTTP ${response.status})`,
+        );
+      }
+      responseType = response.headers.get("content-type") || "";
+      blob = await response.blob();
     }
+
+    if (!blob || (!blob.size && Number(targetFile.size) > 0)) {
+      throw new Error("Firebase Storage devolvió un archivo vacío");
+    }
+
+    const mimeType =
+      responseType ||
+      targetFile.mimetype ||
+      blob.type ||
+      this.getMimeType(targetFile.name);
+
+    return new File([blob], targetFile.name || "archivo", {
+      type: mimeType,
+      lastModified: Date.now(),
+    });
   }
 
   async shareFile(file = null) {
@@ -2243,10 +2259,10 @@ class PCUMedia {
       return;
     }
 
-    if (!navigator.share) {
+    if (!navigator.share || !navigator.canShare) {
       this.showToast({
         title: "Sin soporte",
-        message: "Compartir no disponible en este navegador",
+        message: "Este navegador no permite compartir archivos",
         variant: "error",
       });
       return;
@@ -2256,12 +2272,23 @@ class PCUMedia {
     this.isSharing = true;
 
     try {
-      await navigator.share({ title: targetFile.name, url: targetFile.url });
+      const originalFile = await this.fetchOriginalFile(targetFile);
+      if (!navigator.canShare({ files: [originalFile] })) {
+        throw new Error(
+          "Este dispositivo no permite compartir este tipo de archivo",
+        );
+      }
+
+      // No se incluye url: el destino recibe únicamente el archivo original.
+      await navigator.share({
+        files: [originalFile],
+        title: originalFile.name,
+      });
     } catch (err) {
       if (err.name !== "AbortError") {
         this.showToast({
           title: "Error al compartir",
-          message: err.message || "No se pudo compartir",
+          message: err.message || "No se pudo compartir el archivo",
           variant: "error",
         });
       }
@@ -2282,67 +2309,35 @@ class PCUMedia {
       return;
     }
 
-    const size = Number(targetFile.size) || 0;
-    // Límite seguro para evitar HTTP 500 en Vercel serverless
-    const MAX_BLOB_DOWNLOAD = 4 * 1024 * 1024;
-
-    if (size > MAX_BLOB_DOWNLOAD) {
-      this.openDirectDownload(targetFile.url);
-      this.showToast({
-        title: "Descarga iniciada",
-        message: "Abriendo archivo directamente",
-        variant: "success",
-      });
-      return;
-    }
+    if (this.isDownloading) return;
+    this.isDownloading = true;
 
     try {
-      const blob = await this.fetchFileBlob(targetFile);
-      const mimeType = this.getMimeType(targetFile.name);
-      const fileObj = new File([blob], targetFile.name, {
-        type: mimeType,
-        lastModified: Date.now(),
-      });
-
-      // Móvil (iOS + Android): menú nativo con el archivo real
-      if (
-        navigator.share &&
-        navigator.canShare &&
-        navigator.canShare({ files: [fileObj] })
-      ) {
-        try {
-          await navigator.share({ files: [fileObj] });
-          return;
-        } catch (err) {
-          if (err.name === "AbortError") return;
-        }
-      }
-
-      // Desktop: descarga directa con blobUrl
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.style.display = "none";
-      a.href = blobUrl;
-      a.download = targetFile.name;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      }, 100);
+      const originalFile = await this.fetchOriginalFile(targetFile);
+      const objectUrl = URL.createObjectURL(originalFile);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = originalFile.name;
+      link.style.display = "none";
+      document.body.appendChild(link);
+      link.click();
+      window.setTimeout(() => {
+        link.remove();
+        URL.revokeObjectURL(objectUrl);
+      }, 1000);
       this.showToast({
         title: "Descarga iniciada",
-        message: "Guardando en carpeta de descargas",
+        message: "El archivo se está guardando en el dispositivo",
         variant: "success",
       });
     } catch (err) {
       this.showToast({
         title: "Error al descargar",
-        message: err.message || "No se pudo descargar",
+        message: err.message || "No se pudo descargar el archivo",
         variant: "error",
       });
-      // Fallback: abrir URL directa de Firebase
-      this.openDirectDownload(targetFile.url);
+    } finally {
+      this.isDownloading = false;
     }
   }
 
