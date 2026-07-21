@@ -26,11 +26,55 @@ const PORT = process.env.PORT || 3000;
 
 // Lazy initialization para Firebase Admin (compatible con Vercel serverless)
 let bucket, db;
+let corsConfigured = false;
+
+async function configureBucketCors() {
+  if (corsConfigured || !bucket) return;
+  corsConfigured = true;
+  try {
+    const origins = process.env.STORAGE_CORS_ORIGINS
+      ? process.env.STORAGE_CORS_ORIGINS.split(",").map((s) => s.trim())
+      : ["*"];
+    await bucket.setCorsConfiguration([
+      {
+        origin: origins,
+        method: ["GET", "HEAD", "POST", "PUT", "DELETE"],
+        responseHeader: [
+          "Content-Type",
+          "Content-Disposition",
+          "Cache-Control",
+          "Expires",
+          "Last-Modified",
+          "ETag",
+          "Range",
+          "x-goog-resumable",
+          "x-goog-upload-status",
+          "x-goog-upload-command",
+          "x-goog-upload-protocol",
+          "x-goog-upload-offset",
+          "x-goog-upload-url",
+          "x-goog-upload-content-type",
+          "x-goog-upload-content-length",
+          "x-firebase-storage-version",
+          "x-firebase-gmpid",
+        ],
+        maxAgeSeconds: 3600,
+      },
+    ]);
+    console.log(
+      `Storage CORS configured for bucket ${bucket.name}: ${origins.join(", ")}`,
+    );
+  } catch (error) {
+    corsConfigured = false;
+    console.error("Could not configure Storage CORS:", error.message);
+  }
+}
 
 function initFirebase() {
   if (admin.apps.length) {
     bucket = admin.storage().bucket();
     db = admin.firestore();
+    configureBucketCors();
     return;
   }
 
@@ -59,6 +103,7 @@ function initFirebase() {
 
   bucket = admin.storage().bucket();
   db = admin.firestore();
+  configureBucketCors();
 }
 
 // Middleware para inicializar Firebase en la primera request

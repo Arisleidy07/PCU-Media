@@ -26,6 +26,7 @@ class PCUMedia {
     this.customFolderOrder = this.loadFolderOrder();
     this.audioCtx = null;
     this.fileMeta = this.loadFileMeta();
+    this._fileCache = new Map();
     this.init();
   }
 
@@ -755,6 +756,9 @@ class PCUMedia {
     }
 
     if (shareBtn) {
+      shareBtn.addEventListener("pointerdown", () => {
+        this.prefetchOriginalFile(this.currentPreviewFile);
+      });
       shareBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -763,6 +767,9 @@ class PCUMedia {
     }
 
     if (downloadBtn) {
+      downloadBtn.addEventListener("pointerdown", () => {
+        this.prefetchOriginalFile(this.currentPreviewFile);
+      });
       downloadBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -2039,6 +2046,7 @@ class PCUMedia {
 
     // Store current file for sharing/downloading
     this.currentPreviewFile = file;
+    this.prefetchOriginalFile(file);
 
     // Ensure edit UI starts hidden pero mostrar siempre el bloque de info
     this.setPreviewEditMode(false);
@@ -2205,51 +2213,93 @@ class PCUMedia {
   }
 
   async fetchOriginalFile(targetFile) {
-    let responseType = "";
-    const url = targetFile.url || "";
-    const isExternal =
-      /^https?:\/\//i.test(url) && !url.startsWith(window.location.origin);
-
-    let response;
-    if (isExternal) {
-      const proxyUrl =
-        "/api/download-proxy?url=" +
-        encodeURIComponent(url) +
-        "&filename=" +
-        encodeURIComponent(targetFile.name || "archivo");
-      response = await fetch(proxyUrl, {
-        cache: "no-store",
-        credentials: "same-origin",
-      });
-    } else {
-      response = await fetch(url, {
-        cache: "no-store",
-        credentials: "omit",
-        mode: "cors",
-      });
+    if (!targetFile || !targetFile.url) {
+      throw new Error("No hay archivo para obtener");
     }
 
+    const cacheKey = targetFile.url + "::" + (targetFile.name || "");
+    if (this._fileCache.has(cacheKey)) {
+      return this._fileCache.get(cacheKey);
+    }
+
+    const fetchPromise = this._fetchOriginalFileInternal(targetFile).catch(
+      (err) => {
+        this._fileCache.delete(cacheKey);
+        throw err;
+      },
+    );
+
+    if (this._fileCache.size >= 10) {
+      const firstKey = this._fileCache.keys().next().value;
+      this._fileCache.delete(firstKey);
+    }
+    this._fileCache.set(cacheKey, fetchPromise);
+    return fetchPromise;
+  }
+
+  async _fetchOriginalFileInternal(targetFile) {
+    let response;
+    let responseType = "";
+
+    // Intento directo a Firebase Storage (rápido, sin límite de serverless).
+    // Requiere CORS en el bucket; el backend lo configura automáticamente.
+    response = await fetch(targetFile.url, {
+      method: "GET",
+      mode: "cors",
+      credentials: "omit",
+      cache: "force-cache",
+    });
     if (!response.ok) {
       throw new Error(
         `No se pudo obtener el archivo (HTTP ${response.status})`,
       );
     }
+
     responseType = response.headers.get("content-type") || "";
     const blob = await response.blob();
 
     if (!blob || (!blob.size && Number(targetFile.size) > 0)) {
       throw new Error("El archivo descargado está vacío");
     }
+    if (/^text\/html(?:;|$)/i.test(responseType)) {
+      throw new Error(
+        "Firebase Storage devolvió una página en lugar del archivo",
+      );
+    }
 
+    const storedMimeType = String(targetFile.mimetype || "").trim();
+    const responseMimeType = responseType.split(";", 1)[0].trim();
     const mimeType =
-      responseType ||
-      targetFile.mimetype ||
-      blob.type ||
-      this.getMimeType(targetFile.name);
+      storedMimeType && storedMimeType !== "application/octet-stream"
+        ? storedMimeType
+        : responseMimeType && responseMimeType !== "application/octet-stream"
+          ? responseMimeType
+          : blob.type || this.getMimeType(targetFile.name);
 
     return new File([blob], targetFile.name || "archivo", {
       type: mimeType,
       lastModified: Date.now(),
+    });
+  }
+
+  prefetchOriginalFile(targetFile) {
+    if (!targetFile || !targetFile.url) return;
+    this.fetchOriginalFile(targetFile).catch(() => {});
+  }
+
+  async _shareNativeFile(file) {
+    if (!navigator.share || !navigator.canShare) {
+      throw new Error("Este navegador no permite compartir archivos");
+    }
+    if (!navigator.canShare({ files: [file] })) {
+      throw new Error(
+        "Este dispositivo no permite compartir este tipo de archivo",
+      );
+    }
+    // Se comparte únicamente el archivo original. No se incluye URL.
+    await navigator.share({
+      files: [file],
+      title: file.name,
     });
   }
 
@@ -2265,31 +2315,12 @@ class PCUMedia {
       return;
     }
 
-    if (!navigator.share || !navigator.canShare) {
-      this.showToast({
-        title: "Sin soporte",
-        message: "Este navegador no permite compartir archivos",
-        variant: "error",
-      });
-      return;
-    }
-
     if (this.isSharing) return;
     this.isSharing = true;
 
     try {
       const originalFile = await this.fetchOriginalFile(targetFile);
-      if (!navigator.canShare({ files: [originalFile] })) {
-        throw new Error(
-          "Este dispositivo no permite compartir este tipo de archivo",
-        );
-      }
-
-      // No se incluye url: el destino recibe únicamente el archivo original.
-      await navigator.share({
-        files: [originalFile],
-        title: originalFile.name,
-      });
+      await this._shareNativeFile(originalFile);
     } catch (err) {
       if (err.name !== "AbortError") {
         this.showToast({
@@ -2321,28 +2352,6 @@ class PCUMedia {
     try {
       const originalFile = await this.fetchOriginalFile(targetFile);
 
-      // En móvil/tablet usar el share sheet nativo para guardar en Fotos/Galería.
-      // Esto imita el comportamiento de Pinterest/Instagram/Facebook.
-      const canShareFiles =
-        this.isTouchDevice() &&
-        navigator.share &&
-        navigator.canShare &&
-        navigator.canShare({ files: [originalFile] });
-
-      if (canShareFiles) {
-        await navigator.share({
-          files: [originalFile],
-          title: originalFile.name,
-        });
-        this.showToast({
-          title: "Listo",
-          message: "Selecciona 'Guardar en Fotos' para dejarlo en la galería",
-          variant: "success",
-        });
-        return;
-      }
-
-      // Escritorio o navegadores sin Web Share: descarga tradicional a Downloads
       const objectUrl = URL.createObjectURL(originalFile);
       const link = document.createElement("a");
       link.href = objectUrl;
@@ -2354,11 +2363,6 @@ class PCUMedia {
         link.remove();
         URL.revokeObjectURL(objectUrl);
       }, 1000);
-      this.showToast({
-        title: "Descarga iniciada",
-        message: "El archivo se está guardando en el dispositivo",
-        variant: "success",
-      });
     } catch (err) {
       if (err.name !== "AbortError") {
         this.showToast({
@@ -3145,7 +3149,7 @@ class PCUMedia {
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(
         navigator.userAgent,
       );
-    return hasTouch || coarsePointer || mobileUA;
+    return coarsePointer || mobileUA;
   }
 
   escapeHtml(str) {
